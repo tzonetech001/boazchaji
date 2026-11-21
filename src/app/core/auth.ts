@@ -20,8 +20,9 @@ export class AuthService {
     return isPlatformBrowser(this.platformId) ? localStorage.getItem(TOKEN_KEY) : null;
   }
 
-  login(phone: string, password: string): Observable<{ token: string; user: User }> {
-    return this.api.login(phone, password).pipe(tap((response) => {
+  // TUMEBADILISHA: Kutoka 'phone' kwenda 'identifier' (inaweza kuwa email au simu)
+  login(identifier: string, password: string): Observable<{ token: string; user: User }> {
+    return this.api.login(identifier, password).pipe(tap((response) => {
       if (isPlatformBrowser(this.platformId)) {
         localStorage.setItem(TOKEN_KEY, response.token);
         localStorage.setItem(USER_KEY, JSON.stringify(response.user));

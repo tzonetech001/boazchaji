@@ -3,28 +3,28 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ActivityEntry, Customer, DashboardData, DeviceType, ServiceRecord, User } from './models';
 
-export const apiBaseUrl = 'http://localhost/boazchaji/api';
+export const apiBaseUrl = '/api';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
 
-  login(phone: string, password: string): Observable<{ token: string; user: User }> {
-    return this.http.post<{ token: string; user: User }>(`${apiBaseUrl}/auth/login`, { phone, password });
+  // 1. LOGIN: Inatuma kwenye login.php
+  login(identifier: string, password: string): Observable<{ token: string; user: User }> {
+    return this.http.post<{ token: string; user: User }>(`${apiBaseUrl}/auth/login.php`, { identifier, password });
   }
 
-  forgotPassword(email: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${apiBaseUrl}/auth/forgot-password`, { email });
+  // 2. KAGUA EMAIL: Inatuma kwenye password-reset.php
+  checkEmail(email: string): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`${apiBaseUrl}/auth/password-reset.php?action=check-email`, { email });
   }
 
-  resetPassword(token: string, password: string, confirmPassword: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${apiBaseUrl}/auth/reset-password`, {
-      token,
-      password,
-      confirm_password: confirmPassword,
-    });
+  // 3. BADILISHA NENOSIRI: Inatuma kwenye password-reset.php
+  resetPassword(email: string, password: string): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`${apiBaseUrl}/auth/password-reset.php?action=reset-password`, { email, password });
   }
 
+  // 4. DASHBOARD NA NYINGINE (Hizi zinatumia index.php router yako)
   dashboard(agentId?: number): Observable<DashboardData> {
     const params = agentId ? new HttpParams().set('agent_id', agentId) : undefined;
     return this.http.get<DashboardData>(`${apiBaseUrl}/dashboard`, { params });

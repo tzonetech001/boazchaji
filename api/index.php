@@ -1,15 +1,12 @@
 <?php
 declare(strict_types=1);
 
-$config = require __DIR__ . '/config.php';
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if ($origin === $config['app_url']) {
-    header('Access-Control-Allow-Origin: ' . $origin);
-    header('Vary: Origin');
-}
+// Headers za CORS (Ruhusu kila kitu kwa sasa kwa ajili ya majaribio)
+header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, OPTIONS');
 header('Access-Control-Allow-Headers: Authorization, Content-Type');
 header('Content-Type: application/json; charset=utf-8');
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
@@ -25,5 +22,6 @@ try {
 } catch (Throwable $error) {
     error_log('[boazchaji-api] ' . $error->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error. Check the PHP error log.']);
+    // Tumeongeza $error->getMessage() ili uone kosa halisi kama database imegoma
+    echo json_encode(['error' => 'Internal server error: ' . $error->getMessage()]);
 }

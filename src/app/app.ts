@@ -10,11 +10,12 @@ import { translations } from './core/translations';
   template: '<router-outlet />',
 })
 export class App {
+  // Tunatumia inject hapa nje ya constructor
+  private readonly translate = inject(TranslateService);
+
   constructor() {
-    const translate = inject(TranslateService);
-    translate.setTranslation('en', translations.en);
-    translate.setTranslation('sw', translations.sw);
-    translate.use('sw');
+    this.translate.setTranslation('en', translations.en);
+    this.translate.setTranslation('sw', translations.sw);
+    this.translate.use('sw');
   }
 }
-export const apiBaseUrl = '/api';

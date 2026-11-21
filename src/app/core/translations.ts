@@ -28,6 +28,10 @@ export const translations = {
     authResetCopy: 'Your new password must be at least 8 characters and contain letters and numbers.',
     authNewPassword: 'New password', authConfirmPassword: 'Confirm new password',
     authUpdate: 'Update password', authUpdating: 'Updating…',
+     authIdentifier: 'Phone number or Email',
+    authSigningIn: 'Signing in...',
+    authChecking: 'Checking...',
+    authContinue: 'Continue',
   },
   sw: {
     dashboard: 'Dashibodi', services: 'Huduma', customers: 'Wateja', history: 'Historia',
@@ -58,5 +62,6 @@ export const translations = {
     authResetCopy: 'Nenosiri jipya liwe na angalau herufi 8 na liwe na herufi na namba.',
     authNewPassword: 'Nenosiri jipya', authConfirmPassword: 'Thibitisha nenosiri jipya',
     authUpdate: 'Badilisha nenosiri', authUpdating: 'Inasasisha…',
+
   },
 } as const;

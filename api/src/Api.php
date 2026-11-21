@@ -18,16 +18,22 @@ final class Api
     {
         $path = '/' . trim($path, '/');
 
+        // ==========================================
+        // AUTH ROUTES (ZISIZOHITAJI TOKEN)
+        // ==========================================
         if ($method === 'POST' && $path === '/auth/login') {
             $this->login();
         }
-        if ($method === 'POST' && $path === '/auth/forgot-password') {
-            $this->forgotPassword();
+        if ($method === 'POST' && $path === '/auth/check-email') {
+            $this->checkEmail();
         }
-        if ($method === 'POST' && $path === '/auth/reset-password') {
-            $this->resetPassword();
+        if ($method === 'POST' && $path === '/auth/reset-password-direct') {
+            $this->resetPasswordDirect();
         }
 
+        // ==========================================
+        // ZILIZOBAKI (ZINAHITAJI TOKEN)
+        // ==========================================
         if ($method === 'POST' && $path === '/auth/register') {
             $this->requireRole('admin');
             $this->createUser();
@@ -77,15 +83,31 @@ final class Api
         self::respond(['error' => 'Not found.'], 404);
     }
 
+    // ==========================================
+    // LOGIN (Inakubali Email au Namba ya Simu)
+    // ==========================================
     private function login(): void
     {
         $input = self::jsonBody();
-        $phone = self::phone($input['phone'] ?? '');
-        $statement = $this->db->prepare('SELECT * FROM users WHERE phone = ? LIMIT 1');
-        $statement->execute([$phone]);
+        $identifier = trim((string) ($input['identifier'] ?? ''));
+        
+        if ($identifier === '') {
+            self::respond(['error' => 'Tafadhali weka email au namba ya simu.'], 422);
+        }
+
+        $isEmail = filter_var($identifier, FILTER_VALIDATE_EMAIL);
+        if ($isEmail) {
+            $statement = $this->db->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
+            $statement->execute([$identifier]);
+        } else {
+            $phone = self::phone($identifier);
+            $statement = $this->db->prepare('SELECT * FROM users WHERE phone = ? LIMIT 1');
+            $statement->execute([$phone]);
+        }
+
         $user = $statement->fetch();
         if (!$user || !password_verify((string) ($input['password'] ?? ''), $user['password'])) {
-            self::respond(['error' => 'Invalid phone number or password.'], 401);
+            self::respond(['error' => 'Taarifa za kuingia si sahihi.'], 401);
         }
 
         $publicUser = $this->publicUser($user);
@@ -100,90 +122,61 @@ final class Api
         ]);
     }
 
-    private function forgotPassword(): void
+    // ==========================================
+    // HATUA 1: KAGUA EMAIL (Direct Reset)
+    // ==========================================
+    private function checkEmail(): void
     {
         $input = self::jsonBody();
         $email = strtolower(trim((string) ($input['email'] ?? '')));
+        
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            self::respond(['error' => 'Enter a valid email address.'], 422);
+            self::respond(['error' => 'Weka barua pepe sahihi.'], 422);
         }
 
-        $genericResponse = ['message' => 'If an account exists for that email, reset instructions will be sent shortly.'];
-        $statement = $this->db->prepare('SELECT id, email, first_name FROM users WHERE email = ? LIMIT 1');
+        $statement = $this->db->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
         $statement->execute([$email]);
-        $user = $statement->fetch();
-        if (!$user) {
-            self::respond($genericResponse);
+        
+        if ($statement->fetch()) {
+            self::respond(['status' => 'success', 'message' => 'Email imepatikana. Sasa weka nenosiri jipya.']);
+        } else {
+            self::respond(['error' => 'Email hii haipo kwenye mfumo wetu.'], 404);
         }
-
-        $rateLimit = $this->db->prepare(
-            'SELECT COUNT(*) FROM password_reset_tokens WHERE user_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)'
-        );
-        $rateLimit->execute([$user['id']]);
-        if ((int) $rateLimit->fetchColumn() >= 3) {
-            self::respond($genericResponse);
-        }
-
-        $token = bin2hex(random_bytes(32));
-        $this->db->beginTransaction();
-        $invalidate = $this->db->prepare('UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL');
-        $invalidate->execute([$user['id']]);
-        $insert = $this->db->prepare(
-            'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 MINUTE))'
-        );
-        $insert->execute([$user['id'], hash('sha256', $token)]);
-        $this->db->commit();
-
-        $config = require __DIR__ . '/../config.php';
-        $resetUrl = $config['app_url'] . '/reset-password#token=' . rawurlencode($token);
-        $subject = 'Reset your BOAZCHAJI password';
-        $message = "Hello {$user['first_name']},\n\nUse this link within 30 minutes to set a new password:\n{$resetUrl}\n\nIf you did not request this, you can ignore this email.";
-        $from = filter_var($config['mail_from'], FILTER_VALIDATE_EMAIL);
-        if ($from === false) {
-            error_log('[boazchaji-api] BOAZCHAJI_MAIL_FROM is not a valid email address.');
-        } elseif (!mail($user['email'], $subject, $message, "From: {$from}\r\nContent-Type: text/plain; charset=UTF-8")) {
-            error_log('[boazchaji-api] Password reset email could not be sent.');
-        }
-
-        self::respond($genericResponse);
     }
 
-    private function resetPassword(): void
+    // ==========================================
+    // HATUA 2: BADILISHA NENOSIRI (Direct Reset)
+    // ==========================================
+    private function resetPasswordDirect(): void
     {
         $input = self::jsonBody();
-        $token = (string) ($input['token'] ?? '');
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
         $password = (string) ($input['password'] ?? '');
-        $confirmation = (string) ($input['confirm_password'] ?? '');
-        if (!preg_match('/^[a-f0-9]{64}$/', $token)) {
-            self::respond(['error' => 'This reset link is invalid or expired. Request a new one.'], 400);
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            self::respond(['error' => 'Weka barua pepe sahihi.'], 422);
         }
         if (!preg_match('/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&._-]{8,}$/', $password)) {
-            self::respond(['error' => 'Password must be at least 8 characters and contain letters and numbers.'], 422);
-        }
-        if (!hash_equals($password, $confirmation)) {
-            self::respond(['error' => 'Passwords do not match.'], 422);
+            self::respond(['error' => 'Nenosiri liwe na angalau herufi 8 na liwe na herufi na namba.'], 422);
         }
 
-        $this->db->beginTransaction();
-        $statement = $this->db->prepare(
-            'SELECT id, user_id FROM password_reset_tokens
-             WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW() LIMIT 1 FOR UPDATE'
-        );
-        $statement->execute([hash('sha256', $token)]);
-        $reset = $statement->fetch();
-        if (!$reset) {
-            $this->db->rollBack();
-            self::respond(['error' => 'This reset link is invalid or expired. Request a new one.'], 400);
+        $statement = $this->db->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
+        $statement->execute([$email]);
+        $user = $statement->fetch();
+
+        if (!$user) {
+            self::respond(['error' => 'Email hii haipo.'], 404);
         }
 
-        $updateUser = $this->db->prepare('UPDATE users SET password = ?, auth_version = auth_version + 1 WHERE id = ?');
-        $updateUser->execute([password_hash($password, PASSWORD_DEFAULT), $reset['user_id']]);
-        $useToken = $this->db->prepare('UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = ? AND used_at IS NULL');
-        $useToken->execute([$reset['user_id']]);
-        $this->db->commit();
-        self::respond(['message' => 'Password updated. You can now sign in.']);
+        $update = $this->db->prepare('UPDATE users SET password = ?, auth_version = auth_version + 1 WHERE id = ?');
+        $update->execute([password_hash($password, PASSWORD_DEFAULT), $user['id']]);
+
+        self::respond(['status' => 'success', 'message' => 'Nenosiri limebadilishwa kikamilifu. Sasa unaweza kuingia.']);
     }
 
+    // ==========================================
+    // FUNCTIONS ZINGINE ZOTE ZA AWALI
+    // ==========================================
     private function createUser(): void
     {
         $input = self::jsonBody();
@@ -234,7 +227,6 @@ final class Api
     private function preferences(int $id): void
     {
         $actor = $this->requireUserManagementAccess($id);
-
         $input = self::jsonBody();
         $language = $input['language'] ?? null;
         $theme = $input['theme'] ?? null;
@@ -607,6 +599,9 @@ final class Api
         ]);
     }
 
+    // ==========================================
+    // HELPER FUNCTIONS (Hizi ndizo zilikosekana!)
+    // ==========================================
     private static function jsonBody(): array
     {
         $input = json_decode(file_get_contents('php://input'), true);

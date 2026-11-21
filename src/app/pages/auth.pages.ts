@@ -1,98 +1,207 @@
 import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ApiService } from '../core/api';
 
+// ==========================================
+// 1. LOGIN PAGE
+// ==========================================
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgOptimizedImage, ReactiveFormsModule, RouterLink, TranslatePipe],
   template: `
     <main class="auth-page">
-      <a class="auth-logo" routerLink="/login"><img ngSrc="/assets/images/boaz.jpg" width="216" height="66" priority alt="BOAZCHAJI Phone Charging Shop"></a>
+      <a class="auth-logo" routerLink="/login"><img ngSrc="/assets/images/boaz.jpg" width="216" height="66" priority alt="BOAZCHAJI"></a>
       <form class="auth-card" [formGroup]="form" (ngSubmit)="submit()">
-        <a class="back-link" routerLink="/login">← {{ 'authBack' | translate }}</a>
-        <span class="eyebrow">{{ 'authResetLabel' | translate }}</span><h1>{{ 'authForgotTitle' | translate }}</h1>
-        <p>{{ 'authForgotCopy' | translate }}</p>
+        <span class="eyebrow">TEAM WORKSPACE</span>
+        <h1>{{ 'loginTitle' | translate }}</h1>
+        <p>{{ 'loginSubtitle' | translate }}</p>
+        
         @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
-        @if (sent()) { <div class="alert alert-success"><strong>Check your inbox.</strong> If that email belongs to an account, we’ve sent a secure reset link. Open the link to enter and confirm your new password. For privacy, this page does not report whether an email is registered.</div> }
-        <label class="field"><span>{{ 'authEmail' | translate }}</span><input type="email" formControlName="email" autocomplete="email" placeholder="you@example.com"></label>
-        <button class="button button-primary login-submit" type="submit" [disabled]="form.invalid || sending()">{{ sending() ? ('authSending' | translate) : ('authSend' | translate) }} <span>→</span></button>
+        
+        <label class="field"><span>{{ 'authIdentifier' | translate }}</span>
+          <input type="text" formControlName="identifier" placeholder="0712345678 / email@test.com">
+        </label>
+        
+        <label class="field"><span>{{ 'password' | translate }}</span>
+          <div class="password-control">
+            <input [type]="showPassword() ? 'text' : 'password'" formControlName="password" placeholder="********">
+            <button type="button" class="password-toggle" (click)="showPassword.update(v => !v)">{{ showPassword() ? '◉' : '◎' }}</button>
+          </div>
+        </label>
+        
+        <a routerLink="/forgot-password" class="forgot-link">{{ 'forgotPassword' | translate }}</a>
+        
+        <button class="button button-primary login-submit" type="submit" [disabled]="form.invalid || loading()">
+          {{ loading() ? ('authSigningIn' | translate) : ('signIn' | translate) }} <span>→</span>
+        </button>
       </form>
-      <small class="auth-footer">BOAZCHAJI · PHONE CHARGING SHOP</small>
+      <small class="auth-footer">© {{ 'remember' | translate }}</small>
+    </main>
+  `,
+})
+export class LoginPage {
+  private readonly api = inject(ApiService);
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  
+  readonly form = this.fb.nonNullable.group({
+    identifier: ['', Validators.required],
+    password: ['', Validators.required],
+  });
+  
+  readonly showPassword = signal(false);
+  readonly loading = signal(false);
+  readonly error = signal('');
+
+  submit(): void {
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    this.loading.set(true);
+    this.error.set('');
+
+    const { identifier, password } = this.form.getRawValue();
+
+    this.api.login(identifier, password).subscribe({
+      next: (res) => {
+        localStorage.setItem('token', res.token);
+        localStorage.setItem('user', JSON.stringify(res.user));
+        this.loading.set(false);
+        // Nimebadilisha kwenda /dashboard kwa sababu route ya workspace haipo
+        this.router.navigate(['/dashboard']); 
+      },
+      error: (err) => {
+        // PHP inarudisha "message" au "error" kutegemea kosa
+        this.error.set(err.error?.message || err.error?.error || 'Login failed. Check your credentials.');
+        this.loading.set(false);
+      }
+    });
+  }
+}
+
+// ==========================================
+// 2. FORGOT PASSWORD PAGE (Hatua 2)
+// ==========================================
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [NgOptimizedImage, ReactiveFormsModule, RouterLink, TranslatePipe],
+  template: `
+    <main class="auth-page">
+      <a class="auth-logo" routerLink="/login"><img ngSrc="/assets/images/boaz.jpg" width="216" height="66" priority alt="BOAZCHAJI"></a>
+      
+      <!-- HATUA YA 1: WEKA EMAIL -->
+      @if (step() === 1) {
+        <form class="auth-card" [formGroup]="emailForm" (ngSubmit)="checkEmail()">
+          <a class="back-link" routerLink="/login">← {{ 'authBack' | translate }}</a>
+          <h1>{{ 'authForgotTitle' | translate }}</h1>
+          <p>{{ 'authForgotCopy' | translate }}</p>
+          
+          @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
+          
+          <label class="field"><span>{{ 'authEmail' | translate }}</span>
+            <input type="email" formControlName="email" placeholder="you@example.com">
+          </label>
+          
+          <button class="button button-primary login-submit" type="submit" [disabled]="emailForm.invalid || checking()">
+            {{ checking() ? ('authChecking' | translate) : ('authContinue' | translate) }} <span>→</span>
+          </button>
+        </form>
+      }
+
+      <!-- HATUA YA 2: WEKA NENOSIRI JIPYA -->
+      @if (step() === 2) {
+        <form class="auth-card" [formGroup]="passwordForm" (ngSubmit)="resetPassword()">
+          <h1>{{ 'authResetTitle' | translate }}</h1>
+          <p>{{ 'authResetCopy' | translate }}</p>
+          
+          @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
+          @if (success()) { <div class="alert alert-success">{{ success() }} <a routerLink="/login">{{ 'signIn' | translate }}</a></div> }
+
+          <label class="field"><span>{{ 'authNewPassword' | translate }}</span>
+            <div class="password-control">
+              <input [type]="showPassword() ? 'text' : 'password'" formControlName="password" placeholder="********">
+              <button type="button" class="password-toggle" (click)="showPassword.update(v => !v)">{{ showPassword() ? '◉' : '◎' }}</button>
+            </div>
+          </label>
+          
+          <label class="field"><span>{{ 'authConfirmPassword' | translate }}</span>
+            <div class="password-control">
+              <input [type]="showConfirm() ? 'text' : 'password'" formControlName="confirmPassword" placeholder="********">
+              <button type="button" class="password-toggle" (click)="showConfirm.update(v => !v)">{{ showConfirm() ? '◉' : '◎' }}</button>
+            </div>
+          </label>
+          
+          <button class="button button-primary login-submit" type="submit" [disabled]="passwordForm.invalid || saving() || success() !== ''">
+            {{ saving() ? ('authUpdating' | translate) : ('authUpdate' | translate) }} <span>→</span>
+          </button>
+        </form>
+      }
     </main>
   `,
 })
 export class ForgotPasswordPage {
   private readonly api = inject(ApiService);
   private readonly fb = inject(FormBuilder);
-  readonly form = this.fb.nonNullable.group({ email: ['', [Validators.required, Validators.email]] });
-  readonly sending = signal(false);
-  readonly sent = signal(false);
+  
+  readonly step = signal(1);
+  readonly checking = signal(false);
+  readonly saving = signal(false);
   readonly error = signal('');
+  readonly success = signal('');
+  
+  readonly showPassword = signal(false);
+  readonly showConfirm = signal(false);
 
-  submit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-    this.sending.set(true);
+  readonly emailForm = this.fb.nonNullable.group({ 
+    email: ['', [Validators.required, Validators.email]] 
+  });
+
+  readonly passwordForm = this.fb.nonNullable.group({
+    password: ['', [Validators.required, Validators.minLength(8)]],
+    confirmPassword: ['', Validators.required],
+  });
+
+  checkEmail(): void {
+    if (this.emailForm.invalid) { this.emailForm.markAllAsTouched(); return; }
+    this.checking.set(true);
     this.error.set('');
-    this.api.forgotPassword(this.form.controls.email.value).subscribe({
-      next: () => { this.sent.set(true); this.sending.set(false); },
-      error: () => { this.error.set('Could not request a reset link. Please try again later.'); this.sending.set(false); },
+    
+    this.api.checkEmail(this.emailForm.controls.email.value).subscribe({
+      next: () => { 
+        this.step.set(2);
+        this.checking.set(false); 
+      },
+      error: (err) => { 
+        this.error.set(err.error?.message || err.error?.error || 'Email not found.'); 
+        this.checking.set(false); 
+      },
     });
   }
-}
 
-@Component({
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgOptimizedImage, ReactiveFormsModule, RouterLink, TranslatePipe],
-  template: `
-    <main class="auth-page">
-      <a class="auth-logo" routerLink="/login"><img ngSrc="/assets/images/boaz.jpg" width="216" height="66" priority alt="BOAZCHAJI Phone Charging Shop"></a>
-      <form class="auth-card" [formGroup]="form" (ngSubmit)="submit()">
-        <a class="back-link" routerLink="/login">← {{ 'authBack' | translate }}</a>
-        <span class="eyebrow">{{ 'authResetLabel' | translate }}</span><h1>{{ 'authResetTitle' | translate }}</h1>
-        <p>{{ 'authResetCopy' | translate }}</p>
-        @if (error()) { <div class="alert alert-error">{{ error() }}</div> }
-        @if (success()) { <div class="alert alert-success">{{ success() }} <a routerLink="/login">Sign in</a></div> }
-        <label class="field"><span>{{ 'authNewPassword' | translate }}</span><div class="password-control"><input [type]="showPassword() ? 'text' : 'password'" formControlName="password" autocomplete="new-password" placeholder="At least 8 characters"><button type="button" class="password-toggle" (click)="showPassword.update(value => !value)" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">{{ showPassword() ? '◉' : '◎' }}</button></div></label>
-        <label class="field"><span>{{ 'authConfirmPassword' | translate }}</span><div class="password-control"><input [type]="showConfirmation() ? 'text' : 'password'" formControlName="confirmation" autocomplete="new-password" placeholder="Enter the same password again"><button type="button" class="password-toggle" (click)="showConfirmation.update(value => !value)" [attr.aria-label]="showConfirmation() ? 'Hide confirmation password' : 'Show confirmation password'">{{ showConfirmation() ? '◉' : '◎' }}</button></div></label>
-        <button class="button button-primary login-submit" type="submit" [disabled]="form.invalid || saving() || success()">{{ saving() ? ('authUpdating' | translate) : ('authUpdate' | translate) }} <span>→</span></button>
-      </form>
-      <small class="auth-footer">Reset links expire after 30 minutes.</small>
-    </main>
-  `,
-})
-export class ResetPasswordPage {
-  private readonly api = inject(ApiService);
-  private readonly fb = inject(FormBuilder);
-  private readonly route = inject(ActivatedRoute);
-  readonly form = this.fb.nonNullable.group({
-    password: ['', [Validators.required, Validators.minLength(8), Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&._-]+$/)]],
-    confirmation: ['', Validators.required],
-  });
-  readonly showPassword = signal(false);
-  readonly showConfirmation = signal(false);
-  readonly saving = signal(false);
-  readonly success = signal('');
-  readonly error = signal('');
-  private readonly token = new URLSearchParams(this.route.snapshot.fragment ?? '').get('token')
-    ?? this.route.snapshot.queryParamMap.get('token')
-    ?? '';
+  resetPassword(): void {
+    if (this.passwordForm.invalid) { this.passwordForm.markAllAsTouched(); return; }
+    
+    const { password, confirmPassword } = this.passwordForm.getRawValue();
+    if (password !== confirmPassword) {
+      this.error.set('Passwords do not match.');
+      return;
+    }
 
-  constructor() {
-    if (!/^[a-f0-9]{64}$/.test(this.token)) this.error.set('This reset link is invalid. Request a new one.');
-  }
-
-  submit(): void {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-    const { password, confirmation } = this.form.getRawValue();
-    if (password !== confirmation) { this.error.set('Passwords do not match.'); return; }
     this.saving.set(true);
     this.error.set('');
-    this.api.resetPassword(this.token, password, confirmation).subscribe({
-      next: response => { this.success.set(response.message); this.saving.set(false); },
-      error: () => { this.error.set('This link is invalid or expired. Request a new reset link.'); this.saving.set(false); },
+    const email = this.emailForm.controls.email.value;
+
+    // Nimebadilisha kuwa resetPassword (kulingana na api.ts)
+    this.api.resetPassword(email, password).subscribe({
+      next: (res) => { 
+        this.success.set(res.message || 'Password updated successfully.'); 
+        this.saving.set(false); 
+      },
+      error: (err) => { 
+        this.error.set(err.error?.message || err.error?.error || 'Failed to update password.'); 
+        this.saving.set(false); 
+      },
     });
   }
 }

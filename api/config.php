@@ -9,9 +9,9 @@ return [
         'user' => getenv('BOAZCHAJI_DB_USER') ?: 'root',
         'password' => getenv('BOAZCHAJI_DB_PASSWORD') ?: '',
     ],
-    'jwt_secret' => getenv('BOAZCHAJI_JWT_SECRET') ?: '',
-    'app_url' => rtrim(getenv('BOAZCHAJI_APP_URL') ?: 'http://localhost:4200', '/'),
-    'mail_from' => getenv('BOAZCHAJI_MAIL_FROM') ?: 'no-reply@localhost',
+    'jwt_secret' => getenv('BOAZCHAJI_JWT_SECRET') ?: 'BOAZCHAJI_JWT_SECRET must contain at least 32 characters.',
+    'app_url' => 'http://localhost:4200',
+    'mail_from' => 'no-reply@localhost',
     'upload_dir' => __DIR__ . '/uploads',
     'upload_url' => '/boazchaji/api/uploads',
 ];
