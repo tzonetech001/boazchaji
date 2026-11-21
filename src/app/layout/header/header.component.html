@@ -1,11 +1,9 @@
 <header class="header">
   <div class="header-left">
-    <!-- Hamburger Menu for Mobile -->
-    <button class="hamburger" (click)="toggleSidebar()">
+    <button class="hamburger" (click)="toggleSidebar()" [attr.aria-label]="t('menu')">
       <i class="fas fa-bars"></i>
     </button>
-    
-    <!-- Logo -->
+
     <div class="logo-container">
       <img src="boaz.jpg" alt="BOAZCHAJI Logo" class="logo-img">
       <span class="logo-text">BOAZCHAJI</span>
@@ -13,32 +11,37 @@
   </div>
 
   <div class="header-right">
-    <!-- Language Toggle -->
-    <button class="icon-btn" (click)="toggleLanguage()">
-      <i class="fas fa-globe"></i>
-      <span class="lang-text">{{ currentLang === 'sw' ? 'SW' : 'EN' }}</span>
+    <!-- Kitufe cha Lugha kwa kutumia Flag za Picha -->
+    <button class="icon-btn" (click)="toggleLanguage()" [title]="t('switchLanguage')">
+      <img [src]="'assets/icons/' + (langService.lang() === 'sw' ? 'sw' : 'gb') + '.svg'" 
+           alt="Flag" 
+           class="lang-flag">
     </button>
 
-    <!-- Theme Toggle -->
-    <button class="icon-btn" (click)="toggleTheme()">
+    <button class="icon-btn" (click)="toggleTheme()" [title]="t('toggleTheme')">
       <i class="fas" [ngClass]="isDarkMode ? 'fa-sun' : 'fa-moon'"></i>
     </button>
 
-    <!-- Profile Dropdown -->
     <div class="profile-dropdown">
       <div class="profile-info" (click)="toggleDropdown()">
         <img [src]="userProfileImage" alt="Profile" class="profile-img">
         <div class="user-details hide-on-mobile">
           <span class="user-name">{{ userName }}</span>
-          <span class="user-role">{{ userRole }}</span>
+          <span class="user-role">{{ t(userRole) }}</span>
         </div>
         <i class="fas fa-chevron-down"></i>
       </div>
-      
-      <!-- Dropdown Menu -->
+
       <div class="dropdown-menu" [class.show]="isDropdownOpen">
-        <a routerLink="/settings" class="dropdown-item"><i class="fas fa-cog"></i> Settings</a>
-        <a (click)="logout()" class="dropdown-item text-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <a routerLink="/profile" class="dropdown-item" (click)="isDropdownOpen = false">
+          <i class="fas fa-user"></i> {{ t('profile') }}
+        </a>
+        <a routerLink="/settings" class="dropdown-item" (click)="isDropdownOpen = false">
+          <i class="fas fa-cog"></i> {{ t('settings') }}
+        </a>
+        <a (click)="logout()" class="dropdown-item text-danger">
+          <i class="fas fa-sign-out-alt"></i> {{ t('logout') }}
+        </a>
       </div>
     </div>
   </div>

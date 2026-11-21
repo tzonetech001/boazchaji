@@ -1,84 +1,91 @@
 <div class="list-container">
   <div class="list-header">
     <div>
-      <h2><i class="fas fa-tools"></i> Huduma Zinazosubiri (Pending)</h2>
-      <p>Hizi ni kazi ambazo bado hazijalipiwa.</p>
+      <h2><i class="fas fa-tools"></i> Huduma Zinazosubiri</h2>
     </div>
-    <a routerLink="/services/new" class="btn-primary">
-      <i class="fas fa-plus"></i> Rekodi Mpya
-    </a>
+    <a routerLink="/services/new" class="btn-primary"><i class="fas fa-plus"></i> Rekodi Mpya</a>
   </div>
 
-  <!-- Loading State -->
-  <div class="loading" *ngIf="isLoading">
-    <i class="fas fa-spinner fa-spin"></i> Inapakia...
+  <div class="search-bar" style="margin-bottom: 20px;">
+    <i class="fas fa-search"></i>
+    <input type="text" [(ngModel)]="searchQuery" (input)="applyFilter()" placeholder="Tafuta kwa jina au simu...">
   </div>
 
-  <!-- Empty State -->
-  <div class="empty-state" *ngIf="!isLoading && services.length === 0">
-    <i class="fas fa-check-circle"></i>
-    <h3>Hakuna kazi inayosubiri!</h3>
-    <p>Kazi zote zimelipiwa.</p>
-  </div>
-
-  <!-- Table ya Huduma -->
-  <div class="table-responsive" *ngIf="!isLoading && services.length > 0">
+  <div class="table-responsive" *ngIf="!isLoading && filteredServices.length > 0">
     <table class="data-table">
       <thead>
         <tr>
-          <th>#</th>
           <th>Mteja</th>
           <th>Kifaa</th>
-          <th>Idadi</th>
-          <th>Jumla (TZS)</th>
-          <th>Picha</th>
-          <th>Tarehe</th>
-          <!-- Onyesha Agent kama ni Admin tu -->
+          <th>Jumla</th>
+          <th>Hali</th>
           <th *ngIf="isAdmin">Agent</th>
           <th>Action</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let service of services; let i = index">
-          <td>{{ i + 1 }}</td>
+        <tr *ngFor="let s of filteredServices">
+          <td><strong>{{ s.customer_name }}</strong><br><small>{{ s.customer_phone }}</small></td>
+          <td>{{ s.device_name }} ({{ s.quantity }})</td>
+          <td class="amount">{{ s.amount * s.quantity | number }}</td>
           <td>
-            <strong>{{ service.customer_name }}</strong><br>
-            <small>{{ service.customer_phone || 'Hakuna namba' }}</small>
-          </td>
-          <td>
-            {{ service.device_name }}<br>
-            <small class="badge">{{ service.device_type_name }}</small>
-          </td>
-          <td>{{ service.quantity }}</td>
-          <td class="amount">{{ service.amount * service.quantity | number }}</td>
-          <td>
-            <button class="btn-icon" *ngIf="service.image_path" (click)="viewImage(service.image_path!)">
-              <i class="fas fa-image"></i> Ona
-            </button>
-            <span *ngIf="!service.image_path" class="text-muted">Hakuna</span>
-          </td>
-          <td>{{ service.created_at | date:'short' }}</td>
-          <!-- Onyesha Agent kama ni Admin tu -->
-          <td *ngIf="isAdmin">
-            <span class="agent-badge">
-              <i class="fas fa-user-tie"></i> {{ service.agent_name || 'Haijulikani' }}
+            <span class="badge" [style.background]="s.status === 'paid' ? '#d1fae5' : '#fee2e2'">
+              {{ s.status === 'paid' ? 'Amelipa' : 'Hajalipa' }}
             </span>
           </td>
+          <td *ngIf="isAdmin">{{ s.agent_name }}</td>
           <td>
-            <button class="btn-success" (click)="markPaid(service)">
-              <i class="fas fa-check"></i> Amelipa
-            </button>
+            <button class="btn-icon" (click)="openView(s)"><i class="fas fa-eye"></i></button>
+            <button class="btn-icon" (click)="openStatusModal(s)"><i class="fas fa-money-bill"></i></button>
+            <button class="btn-success" (click)="openTakeModal(s)">Chukua</button>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
-</div>
 
-<!-- Image Modal -->
-<div class="modal-overlay" *ngIf="selectedImage" (click)="closeImage()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
-    <button class="close-btn" (click)="closeImage()"><i class="fas fa-times"></i></button>
-    <img [src]="selectedImage" alt="Picha ya Kifaa">
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">Nyuma</button>
+    <span>Ukurasa {{ currentPage }} kati ya {{ totalPages }}</span>
+    <button [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">Mbele</button>
+  </div>
+
+  <!-- MODALS -->
+  <!-- View Modal -->
+  <div class="modal-overlay" *ngIf="showViewModal" (click)="closeModals()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3>Taarifa za Huduma</h3>
+      <p><strong>Mteja:</strong> {{ selectedService?.customer_name }}</p>
+      <p><strong>Simu:</strong> {{ selectedService?.customer_phone }}</p>
+      <p><strong>Kifaa:</strong> {{ selectedService?.device_name }} ({{ selectedService?.device_type_name }})</p>
+      <p><strong>Idadi:</strong> {{ selectedService?.quantity }}</p>
+      <p><strong>Jumla:</strong> TZS {{ (selectedService!.amount * selectedService!.quantity) | number }}</p>
+      <button class="btn-secondary" (click)="closeModals()">Funga</button>
+    </div>
+  </div>
+
+  <!-- Status Modal -->
+  <div class="modal-overlay" *ngIf="showStatusModal" (click)="closeModals()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3>Badilisha Hali ya Malipo</h3>
+      <p>Je, {{ selectedService?.customer_name }} amelia?</p>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
+        <button class="btn-primary" (click)="updateStatus('paid')">Ndio, Amelipa</button>
+        <button class="btn-secondary" (click)="updateStatus('pending')">Hapana, Hajalipa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Take Modal -->
+  <div class="modal-overlay" *ngIf="showTakeModal" (click)="closeModals()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3>Amechukua Kifaa?</h3>
+      <p>Je, {{ selectedService?.customer_name }} ameshachukua kifaa chake?</p>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
+        <button class="btn-primary" (click)="confirmTake()">Ndio, Amechukua</button>
+        <button class="btn-secondary" (click)="closeModals()">Hajachukua</button>
+      </div>
+    </div>
   </div>
 </div>

@@ -1,5 +1,6 @@
 <div class="user-management-container">
-  <!-- Message Alert (Inaonekana kwa sekunde 2) -->
+
+  <!-- Toast -->
   <div class="alert-overlay" *ngIf="message.text">
     <div class="alert-box" [ngClass]="message.type">
       <i class="fas" [ngClass]="message.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
@@ -7,86 +8,307 @@
     </div>
   </div>
 
-  <div class="header-actions">
-    <h2><i class="fas fa-users"></i> Usimamizi wa Watumiaji</h2>
-    <button class="btn-primary" (click)="toggleForm()">
-      <i class="fas" [ngClass]="showForm ? 'fa-times' : 'fa-plus'"></i>
-      {{ showForm ? 'Funga' : 'Ongeza Mtumiaji' }}
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h2><i class="fas fa-users-cog"></i> {{ t('title') }}</h2>
+      <p>{{ t('subtitle') }}</p>
+    </div>
+    <button class="btn-primary" (click)="openAddModal()">
+      <i class="fas fa-plus"></i> {{ t('addUser') }}
     </button>
   </div>
 
-  <!-- Form ya Kuongeza / Kuedit -->
-  <div class="form-card" *ngIf="showForm">
-    <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Jina la Kwanza</label>
-          <input type="text" formControlName="first_name" class="form-control">
-        </div>
-        <div class="form-group">
-          <label>Jina la Mwisho</label>
-          <input type="text" formControlName="last_name" class="form-control">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Namba ya Simu</label>
-          <input type="tel" formControlName="phone" class="form-control" placeholder="07XXXXXXXX">
-        </div>
-        <div class="form-group">
-          <label>Jinsia</label>
-          <select formControlName="sex" class="form-control">
-            <option value="Male">Me</option>
-            <option value="Female">Ke</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group" *ngIf="!isEditing">
-        <label>Password ya Awali</label>
-        <input type="password" formControlName="password" class="form-control">
-      </div>
-      <button type="submit" class="btn-primary" [disabled]="userForm.invalid">
-        <i class="fas fa-save"></i> {{ isEditing ? 'Hifadhi Mabadiliko' : 'Hifadhi Mtumiaji' }}
-      </button>
-    </form>
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="mini-stat">
+      <div class="mini-icon blue"><i class="fas fa-users"></i></div>
+      <div><p>{{ t('totalUsers') }}</p><h3>{{ users.length }}</h3></div>
+    </div>
+    <div class="mini-stat">
+      <div class="mini-icon green"><i class="fas fa-user-check"></i></div>
+      <div><p>{{ t('activeUsers') }}</p><h3>{{ countByStatus('active') }}</h3></div>
+    </div>
+    <div class="mini-stat">
+      <div class="mini-icon orange"><i class="fas fa-user-slash"></i></div>
+      <div><p>{{ t('inactiveUsers') }}</p><h3>{{ countByStatus('inactive') }}</h3></div>
+    </div>
+    <div class="mini-stat">
+      <div class="mini-icon red"><i class="fas fa-trash"></i></div>
+      <div><p>{{ t('trashedUsers') }}</p><h3>{{ countByStatus('trash') }}</h3></div>
+    </div>
   </div>
 
-  <!-- Orodha ya Watumiaji -->
+  <!-- Search + Filter -->
+  <div class="toolbar">
+    <div class="search-bar">
+      <i class="fas fa-search"></i>
+      <input type="text" [value]="searchTerm" (input)="searchTerm = $any($event.target).value; applyFilter()" [placeholder]="t('search')" />
+    </div>
+    <div class="filter-chips">
+      <button [class.active]="statusFilter === 'all'"      (click)="statusFilter='all'; applyFilter()">{{ t('all') }}</button>
+      <button [class.active]="statusFilter === 'active'"   (click)="statusFilter='active'; applyFilter()">{{ t('active') }}</button>
+      <button [class.active]="statusFilter === 'inactive'" (click)="statusFilter='inactive'; applyFilter()">{{ t('inactive') }}</button>
+      <button [class.active]="statusFilter === 'trash'"    (click)="statusFilter='trash'; applyFilter()">{{ t('trash') }}</button>
+    </div>
+  </div>
+
+  <!-- Table -->
   <div class="table-responsive">
     <table class="data-table">
       <thead>
         <tr>
           <th>#</th>
-          <th>Jina Kamili</th>
-          <th>Simu</th>
-          <th>Jinsia</th>
-          <th>Email</th>
-          <th>Action</th>
+          <th>{{ t('fullName') }}</th>
+          <th>{{ t('phone') }}</th>
+          <th>{{ t('role') }}</th>
+          <th>{{ t('status') }}</th>
+          <th class="actions-col">{{ t('actions') }}</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let user of users; let i = index">
+        <tr *ngFor="let user of filtered; let i = index">
           <td>{{ i + 1 }}</td>
-          <td>{{ user.first_name }} {{ user.last_name }}</td>
+          <td>
+            <div class="user-cell">
+              <img [src]="getAvatarUrl(user)" alt="Avatar" class="avatar-img">
+              <div>
+                <strong>{{ user.first_name }} {{ user.last_name }}</strong>
+                <small>{{ user.email || user.phone }}</small>
+              </div>
+            </div>
+          </td>
           <td>{{ user.phone }}</td>
-          <td>{{ user.sex }}</td>
-          <td>{{ user.email || '-' }}</td>
-          <td class="action-buttons">
-            <!-- Edit -->
-            <button class="btn-icon edit" (click)="editUser(user)" title="Edit">
-              <i class="fas fa-edit"></i>
-            </button>
-            <!-- Deactivate -->
-            <button class="btn-icon deactivate" (click)="deactivateUser(user.id)" title="Deactivate">
-              <i class="fas fa-user-slash"></i>
-            </button>
-            <!-- Trash (Delete) -->
-            <button class="btn-icon delete" (click)="moveToTrash(user.id)" title="Move to Trash">
-              <i class="fas fa-trash"></i>
-            </button>
+          <td>
+             <span class="role-badge" [ngClass]="user.role === 'admin' ? 'role-admin' : 'role-agent'">
+               {{ t(user.role) }}
+             </span>
+          </td>
+          <td>
+            <span class="badge"
+              [ngClass]="(user.status || 'active') === 'active' ? 'badge-success'
+                       : (user.status === 'inactive') ? 'badge-warning' : 'badge-danger'">
+              {{ t(user.status || 'active') }}
+            </span>
+          </td>
+          <td class="actions-col">
+            <ng-container *ngIf="(user.status || 'active') !== 'trash'">
+              <button class="btn-icon view" (click)="openViewModal(user)" [title]="t('view')">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="btn-icon edit" (click)="openEditModal(user)" [title]="t('edit')">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button *ngIf="(user.status || 'active') === 'active'" class="btn-icon deactivate" (click)="askAction('deactivate', user.id)" [title]="t('deactivate')">
+                <i class="fas fa-user-slash"></i>
+              </button>
+              <button *ngIf="user.status === 'inactive'" class="btn-icon activate" (click)="askAction('activate', user.id)" [title]="t('activate')">
+                <i class="fas fa-user-check"></i>
+              </button>
+              <button class="btn-icon delete" (click)="askAction('trash', user.id)" [title]="t('trashUser')">
+                <i class="fas fa-trash"></i>
+              </button>
+            </ng-container>
+            <ng-container *ngIf="user.status === 'trash'">
+              <button class="btn-icon activate" (click)="askAction('restore', user.id)" [title]="t('restore')">
+                <i class="fas fa-undo"></i>
+              </button>
+              <button class="btn-icon delete" (click)="askAction('delete', user.id)" [title]="t('delete')">
+                <i class="fas fa-times-circle"></i>
+              </button>
+            </ng-container>
+          </td>
+        </tr>
+        <tr *ngIf="filtered.length === 0">
+          <td colspan="6" class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>{{ t('noData') }}</p>
           </td>
         </tr>
       </tbody>
     </table>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: ADD USER -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showAddModal" (click)="closeModals()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-user-plus"></i> {{ t('addUser') }}</h3>
+      <button class="close-btn" (click)="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <form [formGroup]="userForm" (ngSubmit)="onSubmitAdd()" class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>{{ t('firstName') }} *</label>
+          <input type="text" formControlName="first_name" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>{{ t('lastName') }} *</label>
+          <input type="text" formControlName="last_name" class="form-control" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>{{ t('phone') }} *</label>
+          <input type="tel" formControlName="phone" class="form-control" placeholder="07XXXXXXXX" />
+        </div>
+        <div class="form-group">
+          <label>{{ t('email') }}</label>
+          <input type="email" formControlName="email" class="form-control" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>{{ t('sex') }} *</label>
+          <select formControlName="sex" class="form-control">
+            <option value="Male">{{ t('male') }}</option>
+            <option value="Female">{{ t('female') }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>{{ t('role') }} *</label>
+          <select formControlName="role" class="form-control">
+            <option value="agent">{{ t('agent') }}</option>
+            <option value="admin">{{ t('admin') }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>{{ t('password') }} *</label>
+        <input type="password" formControlName="password" class="form-control" />
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">{{ t('cancel') }}</button>
+        <button type="submit" class="btn-primary" [disabled]="userForm.invalid"><i class="fas fa-save"></i> {{ t('save') }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: EDIT USER -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showEditModal" (click)="closeModals()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-user-edit"></i> {{ t('edit') }}</h3>
+      <button class="close-btn" (click)="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <form [formGroup]="userForm" (ngSubmit)="onSubmitEdit()" class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>{{ t('firstName') }} *</label>
+          <input type="text" formControlName="first_name" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>{{ t('lastName') }} *</label>
+          <input type="text" formControlName="last_name" class="form-control" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>{{ t('phone') }} *</label>
+          <input type="tel" formControlName="phone" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label>{{ t('email') }}</label>
+          <input type="email" formControlName="email" class="form-control" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>{{ t('sex') }} *</label>
+          <select formControlName="sex" class="form-control">
+            <option value="Male">{{ t('male') }}</option>
+            <option value="Female">{{ t('female') }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>{{ t('role') }} *</label>
+          <select formControlName="role" class="form-control">
+            <option value="agent">{{ t('agent') }}</option>
+            <option value="admin">{{ t('admin') }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>{{ t('password') }} (<i>Acha wazi kama hutaki kubadilisha</i>)</label>
+        <input type="password" formControlName="password" class="form-control" />
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">{{ t('cancel') }}</button>
+        <button type="submit" class="btn-primary" [disabled]="userForm.invalid"><i class="fas fa-save"></i> {{ t('update') }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: VIEW USER -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showViewModal" (click)="closeModals()">
+  <div class="modal-content view-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-user-circle"></i> {{ t('viewDetails') }}</h3>
+      <button class="close-btn" (click)="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <div class="modal-body view-body" *ngIf="selectedUser">
+      <div class="profile-summary">
+        <img [src]="getAvatarUrl(selectedUser)" alt="Avatar" class="big-avatar">
+        <h4>{{ selectedUser.first_name }} {{ selectedUser.last_name }}</h4>
+        <span class="role-badge" [ngClass]="selectedUser.role === 'admin' ? 'role-admin' : 'role-agent'">
+          {{ t(selectedUser.role) }}
+        </span>
+      </div>
+      
+      <div class="details-grid">
+        <div class="detail-item">
+          <span>{{ t('phone') }}</span>
+          <strong>{{ selectedUser.phone }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>{{ t('email') }}</span>
+          <strong>{{ selectedUser.email || '—' }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>{{ t('sex') }}</span>
+          <strong>{{ t(selectedUser.sex === 'Male' ? 'male' : 'female') }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>{{ t('status') }}</span>
+          <strong>{{ t(selectedUser.status || 'active') }}</strong>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" (click)="closeModals()">{{ t('close') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: CONFIRM ACTION (Custom Confirm) -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showConfirmModal" (click)="closeModals()">
+  <div class="modal-content confirm-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header warning-header">
+      <h3><i class="fas fa-exclamation-triangle"></i> {{ confirmTitle }}</h3>
+    </div>
+    <div class="modal-body confirm-body">
+      <p>{{ confirmMessage }}</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="closeModals()">{{ t('cancelBtn') }}</button>
+      <button type="button" class="btn-danger" (click)="executeConfirmAction()">{{ t('confirmBtn') }}</button>
+    </div>
   </div>
 </div>

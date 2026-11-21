@@ -1,0 +1,158 @@
+<div class="customers-container">
+
+  <!-- Toast Message -->
+  <div class="alert-overlay" *ngIf="message.text">
+    <div class="alert-box" [ngClass]="message.type">
+      <i class="fas" [ngClass]="message.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
+      {{ message.text }}
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h2><i class="fas fa-address-book"></i> {{ t('title') }}</h2>
+      <p>{{ t('subtitle') }}</p>
+    </div>
+    <button class="btn-primary" (click)="openAddModal()">
+      <i class="fas fa-plus"></i> {{ t('addCustomer') }}
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="mini-stat">
+      <div class="mini-icon blue"><i class="fas fa-users"></i></div>
+      <div>
+        <p>{{ t('totalCustomers') }}</p>
+        <h3>{{ customers.length }}</h3>
+      </div>
+    </div>
+    <div class="mini-stat">
+      <div class="mini-icon green"><i class="fas fa-phone"></i></div>
+      <div>
+        <p>{{ t('withPhone') }}</p>
+        <h3>{{ countWithPhone() }}</h3>
+      </div>
+    </div>
+    <div class="mini-stat">
+      <div class="mini-icon orange"><i class="fas fa-user-plus"></i></div>
+      <div>
+        <p>{{ t('newThisWeek') }}</p>
+        <h3>{{ customers.length > 0 ? '—' : '0' }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-bar">
+    <i class="fas fa-search"></i>
+    <input type="text" [value]="searchTerm" (input)="searchTerm = $any($event.target).value; applyFilter()"
+           [placeholder]="t('search')" />
+  </div>
+
+  <!-- Table -->
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>{{ t('name') }}</th>
+          <th>{{ t('phone') }}</th>
+          <th class="actions-col">{{ t('actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of filtered; let i = index">
+          <td>{{ i + 1 }}</td>
+          <td>
+            <div class="user-cell">
+              <div class="avatar-sm">{{ initials(c.name) }}</div>
+              <span><strong>{{ c.name }}</strong></span>
+            </div>
+          </td>
+          <td>{{ c.phone || '—' }}</td>
+          <td class="actions-col">
+            <button class="btn-icon edit" (click)="openEditModal(c)" [title]="t('edit')">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-icon delete" (click)="askDelete(c.id)" [title]="t('delete')">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="filtered.length === 0 && !loading">
+          <td colspan="4" class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>{{ t('noData') }}</p>
+          </td>
+        </tr>
+        <tr *ngIf="loading">
+          <td colspan="4" class="empty-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Inapakia...</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: ADD / EDIT CUSTOMER -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showFormModal" (click)="closeModals()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        <i class="fas" [ngClass]="isEditing ? 'fa-user-edit' : 'fa-user-plus'"></i> 
+        {{ isEditing ? t('edit') : t('addCustomer') }}
+      </h3>
+      <button class="close-btn" (click)="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <form [formGroup]="customerForm" (ngSubmit)="submit()" class="modal-body">
+      <div class="form-group">
+        <label>{{ t('name') }} <span style="color:red">*</span></label>
+        <input type="text" formControlName="name" class="form-control" placeholder="Mfano: Juma Hamisi" />
+        <small class="error-text" *ngIf="customerForm.get('name')?.invalid && customerForm.get('name')?.touched">
+          {{ t('nameRequired') }}
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>{{ t('phone') }}</label>
+        <input type="tel" formControlName="phone" class="form-control" placeholder="07XXXXXXXX" />
+        <small class="error-text" *ngIf="customerForm.get('phone')?.invalid && customerForm.get('phone')?.touched">
+          {{ t('phoneInvalid') }}
+        </small>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModals()">{{ t('cancel') }}</button>
+        <button type="submit" class="btn-primary" [disabled]="customerForm.invalid">
+          <i class="fas fa-save"></i> {{ isEditing ? t('update') : t('save') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: CONFIRM DELETE -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showConfirmModal" (click)="closeModals()">
+  <div class="modal-content confirm-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header warning-header">
+      <h3><i class="fas fa-exclamation-triangle"></i> {{ t('confirmTitle') }}</h3>
+    </div>
+    <div class="modal-body confirm-body">
+      <p>{{ t('confirmDelete') }}</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="closeModals()">{{ t('cancelBtn') }}</button>
+      <button type="button" class="btn-danger" (click)="confirmDelete()">{{ t('confirmBtn') }}</button>
+    </div>
+  </div>
+</div>

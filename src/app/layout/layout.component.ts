@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { HeaderComponent } from './header/header.component';
@@ -11,27 +11,34 @@ import { SidebarComponent } from './sidebar/sidebar.component';
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.css']
 })
-export class LayoutComponent {
-  isSidebarOpen = false;
+export class LayoutComponent implements OnInit {
+  isSidebarOpen = true;
+  isMobile = false;
+
+  ngOnInit() {
+    this.updateScreen();
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.updateScreen();
+  }
+
+  private updateScreen() {
+    const wasMobile = this.isMobile;
+    this.isMobile = window.innerWidth <= 768;
+    
+    // Kama tumebadilisha kutoka desktop → mobile, funga sidebar ili kisiwe kikubwa
+    if (this.isMobile && !wasMobile) this.isSidebarOpen = false;
+    // Kama tumebadilisha kutoka mobile → desktop, fungua sidebar
+    if (!this.isMobile && wasMobile)  this.isSidebarOpen = true;
+  }
 
   toggleSidebar() {
     this.isSidebarOpen = !this.isSidebarOpen;
-    this.updateSidebarClass();
   }
 
   closeSidebar() {
     this.isSidebarOpen = false;
-    this.updateSidebarClass();
-  }
-
-  private updateSidebarClass() {
-    const sidebar = document.querySelector('app-sidebar');
-    if (sidebar) {
-      if (this.isSidebarOpen) {
-        sidebar.classList.add('open');
-      } else {
-        sidebar.classList.remove('open');
-      }
-    }
   }
 }

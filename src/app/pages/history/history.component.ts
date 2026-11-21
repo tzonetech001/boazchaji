@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Service } from '../../core/models/service.model';
 
 @Component({
@@ -14,31 +15,26 @@ import { Service } from '../../core/models/service.model';
 export class HistoryComponent implements OnInit {
   services: Service[] = [];
   isLoading = true;
-  selectedImage: string | null = null;
 
-  constructor(private apiService: ApiService) {}
+  constructor(private api: ApiService, private auth: AuthService) {}
 
   ngOnInit() {
-    this.loadHistory();
-  }
+    const user = this.auth.getCurrentUser();
+    const role = user?.role || 'agent';
+    const agentId = role === 'agent' ? user?.id : undefined;
 
-  loadHistory() {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const role = user.role || 'agent';
-    const agentId = role === 'agent' ? user.id : undefined;
-
-    this.apiService.getServices('paid', role, agentId).subscribe({
-      next: (data) => {
-        this.services = data;
-        this.isLoading = false;
-      },
+    this.api.getServices('history', role, agentId).subscribe({
+      next: (data) => { this.services = data; this.isLoading = false; },
       error: () => this.isLoading = false
     });
   }
 
-  viewImage(imagePath: string) {
-    this.selectedImage = this.apiService.getImageUrl(imagePath);
+  deleteService(id: number) {
+    if (confirm("Una uhakika unataka kufuta huduma hii kabisa?")) {
+      this.api.deleteService(id).subscribe({
+        next: () => { this.services = this.services.filter(s => s.id !== id); },
+        error: (err) => alert(err.error.message)
+      });
+    }
   }
-
-  closeImage() { this.selectedImage = null; }
 }

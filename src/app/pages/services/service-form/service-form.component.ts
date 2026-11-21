@@ -7,7 +7,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { Customer } from '../../../core/models/customer.model';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { TranslatePipe } from '@ngx-translate/core';
+
 @Component({
   selector: 'app-service-form',
   standalone: true,
@@ -17,76 +17,76 @@ import { TranslatePipe } from '@ngx-translate/core';
 })
 export class ServiceFormComponent implements OnInit {
   serviceForm: FormGroup;
-  
   searchResults: Customer[] = [];
   showDropdown = false;
-  
   selectedFile: File | null = null;
   imagePreview: string | ArrayBuffer | null = null;
   
   deviceTypes: any[] = [];
+  agents: any[] = [];
+  isAdmin = false;
   isSubmitting = false;
-  successMessage = '';
 
-  constructor(
-    private fb: FormBuilder,
-    private apiService: ApiService,
-    private authService: AuthService,
-    private router: Router
-  ) {
+  constructor(private fb: FormBuilder, private api: ApiService, private auth: AuthService, private router: Router) {
     this.serviceForm = this.fb.group({
       customer_id: [null, Validators.required],
       customer_name: ['', Validators.required],
+      customer_phone: ['', [Validators.required, Validators.pattern('^(06|07)[0-9]{8}$')]],
       device_type_id: ['', Validators.required],
       device_name: ['', Validators.required],
       quantity: [1, [Validators.required, Validators.min(1)]],
       amount: [300, [Validators.required, Validators.min(0)]],
-      agent_id: [null]
+      status: ['pending'],
+      agent_id: [null, Validators.required]
     });
   }
 
   ngOnInit() {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (user.role === 'agent') {
-      this.serviceForm.patchValue({ agent_id: user.id });
+    const user = this.auth.getCurrentUser();
+    this.isAdmin = user?.role === 'admin';
+    
+    if (!this.isAdmin) {
+      this.serviceForm.patchValue({ agent_id: user?.id });
+    } else {
+      this.api.getAgents().subscribe(res => this.agents = res);
     }
 
+    this.api.getDeviceTypes().subscribe(res => this.deviceTypes = res);
+
+    // Autocomplete customer
     this.serviceForm.get('customer_name')?.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        switchMap(value => {
-          if (typeof value === 'string' && value.length > 1) {
-            return this.apiService.searchCustomers(value);
-          }
-          return of([]);
-        })
-      )
-      .subscribe(results => {
+      .pipe(debounceTime(300), distinctUntilChanged(),
+        switchMap(value => (typeof value === 'string' && value.length > 1) ? this.api.searchCustomers(value) : of([]))
+      ).subscribe(results => {
         this.searchResults = results;
         this.showDropdown = results.length > 0;
       });
   }
 
-  selectCustomer(customer: Customer) {
-    this.serviceForm.patchValue({
-      customer_id: customer.id,
-      customer_name: customer.name
-    });
+  selectCustomer(c: Customer) {
+    this.serviceForm.patchValue({ customer_id: c.id, customer_name: c.name, customer_phone: c.phone });
     this.showDropdown = false;
   }
 
   createNewCustomer() {
     const name = this.serviceForm.get('customer_name')?.value;
-    if (!name) return;
+    const phone = this.serviceForm.get('customer_phone')?.value;
+    if (!name || !phone) return alert("Weka jina na namba sahihi kwanza");
 
-    this.apiService.addCustomer({ name }).subscribe({
-      next: (res) => {
-        this.serviceForm.patchValue({ customer_id: res.id });
-        this.showDropdown = false;
-        alert('Mteja mpya ameongezwa kikamilifu!');
-      }
+    this.api.addCustomer({ name, phone }).subscribe(res => {
+      this.serviceForm.patchValue({ customer_id: res.id });
+      this.showDropdown = false;
     });
+  }
+
+  addDeviceType() {
+    const type = prompt("Weka jina la aina mpya ya kifaa:");
+    if (type) {
+      this.api.addDeviceType(type).subscribe(res => {
+        this.deviceTypes.push({ id: res.id, name: type });
+        this.serviceForm.patchValue({ device_type_id: res.id });
+      });
+    }
   }
 
   onFileSelected(event: any) {
@@ -94,49 +94,24 @@ export class ServiceFormComponent implements OnInit {
     if (file) {
       this.selectedFile = file;
       const reader = new FileReader();
-      reader.onload = () => {
-        this.imagePreview = reader.result;
-      };
+      reader.onload = () => this.imagePreview = reader.result;
       reader.readAsDataURL(file);
     }
   }
 
   onSubmit() {
-    if (this.serviceForm.invalid || this.isSubmitting) return;
-
-    if (!this.serviceForm.value.customer_id) {
-      alert('Tafadhali chagua mteja au bofya "Add New Customer" kabla ya kuhifadhi.');
-      return;
-    }
-
+    if (this.serviceForm.invalid) return;
     this.isSubmitting = true;
 
     const formData = new FormData();
-    const formValues = this.serviceForm.value;
-    
-    formData.append('agent_id', formValues.agent_id);
-    formData.append('customer_id', formValues.customer_id);
-    formData.append('device_type_id', formValues.device_type_id);
-    formData.append('device_name', formValues.device_name);
-    formData.append('quantity', formValues.quantity);
-    formData.append('amount', formValues.amount);
-    
-    if (this.selectedFile) {
-      formData.append('image', this.selectedFile);
-    }
+    Object.keys(this.serviceForm.value).forEach(key => {
+      if (this.serviceForm.value[key] !== null) formData.append(key, this.serviceForm.value[key]);
+    });
+    if (this.selectedFile) formData.append('image', this.selectedFile);
 
-    this.apiService.addService(formData).subscribe({
-      next: (res) => {
-        this.isSubmitting = false;
-        this.successMessage = 'Huduma imehifadhiwa kikamilifu!';
-        setTimeout(() => {
-          this.router.navigate(['/services']);
-        }, 2000);
-      },
-      error: (err) => {
-        this.isSubmitting = false;
-        alert('Hitilafu imetokea: ' + (err.error.message || err.message));
-      }
+    this.api.addService(formData).subscribe({
+      next: () => { this.router.navigate(['/services']); },
+      error: (err) => { alert('Hitilafu: ' + err.error.message); this.isSubmitting = false; }
     });
   }
 }

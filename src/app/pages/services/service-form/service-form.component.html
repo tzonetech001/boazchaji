@@ -1,122 +1,92 @@
 <div class="form-container">
   <div class="form-card">
     <div class="form-header">
-      <h2><i class="fas fa-plus-circle"></i> Rekodi Huduma Mpya</h2>
-      <p>Weka taarifa za mteja na kifaa alichokileta.</p>
-    </div>
-
-    <div class="alert-success" *ngIf="successMessage">
-      <i class="fas fa-check-circle"></i> {{ successMessage }}
+      <h2><i class="fas fa-plus-circle"></i> Rekodi Huduma</h2>
     </div>
 
     <form [formGroup]="serviceForm" (ngSubmit)="onSubmit()">
       
-      <!-- Customer Autocomplete -->
-      <div class="form-group relative">
-        <label>Jina la Mteja <span class="required">*</span></label>
-        <div class="input-wrapper">
-          <i class="fas fa-user"></i>
-          <input type="text" formControlName="customer_name" placeholder="Anza kuandika jina..." autocomplete="off">
-        </div>
-        
-        <!-- Dropdown ya Autocomplete -->
-        <div class="autocomplete-dropdown" *ngIf="showDropdown">
-          <div class="dropdown-item" *ngFor="let customer of searchResults" (click)="selectCustomer(customer)">
-            <i class="fas fa-user-circle"></i>
-            <div>
-              <span class="name">{{ customer.name }}</span>
-              <span class="phone">{{ customer.phone }}</span>
+      <!-- Agent Selector (Admin pekee) -->
+      <div class="form-group" *ngIf="isAdmin">
+        <label>Mteja wa Agent Gani? <span class="required">*</span></label>
+        <select formControlName="agent_id" class="form-control">
+          <option value="">Chagua Agent...</option>
+          <option *ngFor="let a of agents" [value]="a.id">{{ a.first_name }} {{ a.last_name }}</option>
+        </select>
+      </div>
+
+      <!-- Mteja -->
+      <div class="form-row">
+        <div class="form-group relative">
+          <label>Jina la Mteja <span class="required">*</span></label>
+          <input type="text" formControlName="customer_name" class="form-control" placeholder="Anza kuandika..." autocomplete="off">
+          <div class="autocomplete-dropdown" *ngIf="showDropdown">
+            <div class="dropdown-item" *ngFor="let c of searchResults" (click)="selectCustomer(c)">
+              <strong>{{ c.name }}</strong> - {{ c.phone }}
             </div>
           </div>
-          <!-- Option ya kuongeza mpya -->
-          <div class="dropdown-item add-new" (click)="createNewCustomer()">
-            <i class="fas fa-plus-circle text-success"></i>
-            <span>Ongeza "{{ serviceForm.get('customer_name')?.value }}" kama mteja mpya</span>
-          </div>
+          <small class="add-new" *ngIf="!showDropdown && serviceForm.value.customer_name && !serviceForm.value.customer_id" (click)="createNewCustomer()">
+            <i class="fas fa-plus-circle"></i> Save "{{serviceForm.value.customer_name}}" kama mteja mpya
+          </small>
+        </div>
+        <div class="form-group">
+          <label>Namba ya Simu <span class="required">*</span></label>
+          <input type="tel" formControlName="customer_phone" class="form-control" placeholder="07XXXXXXXX">
         </div>
       </div>
 
       <div class="form-row">
-        <!-- Device Name -->
         <div class="form-group">
           <label>Jina la Kifaa <span class="required">*</span></label>
-          <div class="input-wrapper">
-            <i class="fas fa-mobile-alt"></i>
-            <input type="text" formControlName="device_name" placeholder="Mfano: Samsung A12">
-          </div>
+          <input type="text" formControlName="device_name" class="form-control">
         </div>
-
-        <!-- Device Type (Tunaweka static kwa sasa, baadaye tutaunganisha na DB) -->
         <div class="form-group">
           <label>Aina ya Kifaa <span class="required">*</span></label>
-          <div class="input-wrapper">
-            <i class="fas fa-tools"></i>
-            <select formControlName="device_type_id">
-              <option value="">Chagua aina...</option>
-              <option value="1">Simu (Phone)</option>
-              <option value="2">Redio (Radio)</option>
-              <option value="3">Betri (Battery)</option>
+          <div style="display:flex; gap:10px;">
+            <select formControlName="device_type_id" class="form-control">
+              <option value="">Chagua...</option>
+              <option *ngFor="let d of deviceTypes" [value]="d.id">{{ d.name }}</option>
             </select>
+            <button type="button" class="btn-primary" (click)="addDeviceType()"><i class="fas fa-plus"></i></button>
           </div>
         </div>
       </div>
 
       <div class="form-row">
-        <!-- Quantity -->
         <div class="form-group">
-          <label>Idadi (Quantity) <span class="required">*</span></label>
-          <div class="input-wrapper">
-            <i class="fas fa-sort-numeric-up"></i>
-            <input type="number" formControlName="quantity" min="1">
-          </div>
+          <label>Idadi <span class="required">*</span></label>
+          <input type="number" formControlName="quantity" class="form-control">
         </div>
-
-        <!-- Amount -->
         <div class="form-group">
           <label>Kiasi (TZS) <span class="required">*</span></label>
-          <div class="input-wrapper">
-            <i class="fas fa-money-bill-wave"></i>
-            <input type="number" formControlName="amount">
-          </div>
-          <small class="hint">Default ni 300, unaweza kubadilisha.</small>
+          <input type="number" formControlName="amount" class="form-control">
         </div>
       </div>
 
-      <!-- Image Upload -->
+      <!-- Payment Checkbox -->
       <div class="form-group">
-        <label>Picha ya Kifaa (Hiari)</label>
-        <div class="file-upload-area" (click)="fileInput.click()">
-          <input #fileInput type="file" (change)="onFileSelected($event)" accept="image/*" hidden>
-          
-          <div class="upload-placeholder" *ngIf="!imagePreview">
-            <i class="fas fa-cloud-upload-alt"></i>
-            <p>Bofya hapa kupakia picha</p>
-          </div>
-          
-          <div class="image-preview" *ngIf="imagePreview">
-            <img [src]="imagePreview" alt="Preview">
-            <button type="button" class="remove-btn" (click)="$event.stopPropagation(); imagePreview = null; selectedFile = null;">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
+        <label>Hali ya Malipo</label>
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+          <input type="checkbox" formControlName="status" [value]="serviceForm.value.status === 'paid' ? 'paid' : 'pending'" 
+                 (change)="serviceForm.patchValue({status: $any($event.target).checked ? 'paid' : 'pending'})">
+          Amelipia Kikamilifu
+        </label>
       </div>
 
-      <!-- Total Calculation Display -->
+      <div class="form-group">
+        <label>Picha (Hiari)</label>
+        <input type="file" (change)="onFileSelected($event)" accept="image/*" class="form-control">
+        <img *ngIf="imagePreview" [src]="imagePreview" style="max-height:100px; margin-top:10px; border-radius:8px;">
+      </div>
+
       <div class="total-display">
-        <span>Jumla (Total):</span>
-        <strong>{{ (serviceForm.value.quantity * serviceForm.value.amount) | number }} TZS</strong>
+        <span>Jumla:</span> <strong>{{ (serviceForm.value.quantity * serviceForm.value.amount) | number }} TZS</strong>
       </div>
 
-      <!-- Submit Button -->
       <div class="form-actions">
         <button type="button" class="btn-secondary" routerLink="/services">Ghairi</button>
-        <button type="submit" class="btn-primary" [disabled]="serviceForm.invalid || isSubmitting">
-          <span *ngIf="!isSubmitting"><i class="fas fa-save"></i> Hifadhi Huduma</span>
-          <i class="fas fa-spinner fa-spin" *ngIf="isSubmitting"></i>
-        </button>
+        <button type="submit" class="btn-primary" [disabled]="isSubmitting">Hifadhi</button>
       </div>
-
     </form>
   </div>
 </div>

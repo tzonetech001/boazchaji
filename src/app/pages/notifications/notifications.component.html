@@ -1,0 +1,77 @@
+<div class="notifications-container">
+  
+  <div class="page-header">
+    <div>
+      <h2><i class="fas fa-bell"></i> Taarifa (Notifications)</h2>
+      <p>Simamia taarifa na ujumbe wa mfumo.</p>
+    </div>
+    <button *ngIf="isAdmin" class="btn-danger" (click)="clearAll()">
+      <i class="fas fa-trash"></i> Futa Zote
+    </button>
+  </div>
+
+  <!-- Admin: Send Notification Form -->
+  <div class="form-card" *ngIf="isAdmin" [formGroup]="notifForm" (ngSubmit)="sendNotif()">
+    <h3><i class="fas fa-paper-plane"></i> Tuma Ujumbe Mpya</h3>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>Mpokeaji</label>
+        <select formControlName="receiver_id" class="form-control">
+          <option value="">Kwa Wote (Broadcast)</option>
+          <option *ngFor="let a of agents" [value]="a.id">
+            {{ a.first_name }} {{ a.last_name }}
+          </option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Kichwa cha Habari</label>
+        <input type="text" formControlName="title" placeholder="Mfano: Kumbusho la Kazi" class="form-control">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Ujumbe</label>
+      <textarea formControlName="message" placeholder="Andika ujumbe wako hapa..." class="form-control" rows="3"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary" [disabled]="notifForm.invalid">
+        <i class="fas fa-paper-plane"></i> Tuma Ujumbe
+      </button>
+    </div>
+  </div>
+
+  <!-- Notifications List -->
+  <div class="list-card">
+    <div class="empty-state" *ngIf="notifications.length === 0">
+      <i class="fas fa-bell-slash"></i>
+      <p>Hakuna taarifa yoyote kwa sasa.</p>
+    </div>
+
+    <div class="notif-list" *ngIf="notifications.length > 0">
+      <div class="notif-item" *ngFor="let n of notifications" 
+           [class.unread]="!n.is_read" 
+           (click)="markRead(n)">
+        
+        <div class="notif-icon" [ngClass]="n.is_read ? 'read' : 'unread'">
+          <i class="fas fa-envelope" *ngIf="!n.is_read"></i>
+          <i class="fas fa-envelope-open" *ngIf="n.is_read"></i>
+        </div>
+
+        <div class="notif-content">
+          <div class="notif-header">
+            <h4>{{ n.title }}</h4>
+            <small><i class="fas fa-clock"></i> {{ n.created_at | date:'short' }}</small>
+          </div>
+          <p>{{ n.message }}</p>
+          <div class="notif-footer">
+            <small><i class="fas fa-user"></i> Kutoka: {{ n.sender_name || 'Mfumo' }}</small>
+            <span class="unread-dot" *ngIf="!n.is_read">Mpya</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

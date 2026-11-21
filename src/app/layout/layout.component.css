@@ -1,25 +1,56 @@
-.app-layout {
+.app-wrapper {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
   background-color: var(--bg-color);
 }
 
+/* Header inachukua nafasi yake juu kwa upana wote */
+app-header {
+  flex-shrink: 0;
+  width: 100%;
+  height: 70px; /* Urefu huu unatakiwa ulingane na .header kwenye header.component.css */
+  z-index: 1000;
+}
+
+/* Hapa ndipo Sidebar na Content zinapokutana */
+.app-body {
+  display: flex;
+  flex-grow: 1;
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+}
+
+/* SIDEBAR */
 app-sidebar {
   width: 260px;
   flex-shrink: 0;
   height: 100%;
-  transition: transform 0.3s ease;
-  z-index: 1001;
+  transition: width 0.3s ease, transform 0.3s ease;
+  z-index: 999; /* Chini ya header (1000) */
+  overflow: hidden;
+  border-right: 1px solid var(--border-color);
 }
 
+/* PC: Sidebar inapojificha, width inakuwa 0 */
+@media (min-width: 769px) {
+  .app-body.sidebar-closed app-sidebar {
+    width: 0;
+    border-right: none;
+  }
+}
+
+/* MAIN CONTENT */
 .main-content {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  min-width: 0; /* Muhimu kuzuia flexbox isivuje width */
 }
 
 .page-content {
@@ -27,50 +58,51 @@ app-sidebar {
   padding: 20px;
   overflow-y: auto;
   background-color: var(--bg-secondary);
-  /* Hii inafanya content ichukue nafasi yote */
-  width: 100%; 
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Footer Styles */
+/* Footer */
 .app-footer {
-  height: 20px; /* Urefu kama ulivyoomba */
+  height: 24px;
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* Kulia */
+  justify-content: flex-end;
   padding-right: 15px;
   background-color: var(--card-bg);
   border-top: 1px solid var(--border-color);
   font-size: 0.75rem;
   color: var(--text-muted);
+  flex-shrink: 0;
 }
-
 .app-footer p { margin: 0; }
-
 .footer-link { text-decoration: none; font-weight: 600; }
-.footer-link .tz { color: #0284c7; /* Blue */ }
-.footer-link .tech { color: #ff7f50; /* Coral */ }
+.footer-link .tz { color: #0284c7; }
+.footer-link .tech { color: #ff7f50; }
 
-/* Mobile Responsiveness */
+/* MOBILE: Sidebar inatokea kutoka kushoto na kupita juu ya content */
 @media (max-width: 768px) {
   app-sidebar {
     position: fixed;
+    top: 70px; /* Inaanza chini ya header */
     left: 0;
-    top: 0;
-    transform: translateX(-100%); /* Hide off-screen */
+    width: 260px;
+    height: calc(100vh - 70px);
+    transform: translateX(-100%);
   }
 
   app-sidebar.open {
-    transform: translateX(0); /* Slide in */
+    transform: translateX(0);
   }
 
   .sidebar-overlay {
     display: block;
     position: fixed;
-    top: 0;
+    top: 70px;
     left: 0;
     width: 100vw;
-    height: 100vh;
-    background: rgba(0,0,0,0.5);
-    z-index: 1000;
+    height: calc(100vh - 70px);
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998; /* Chini ya sidebar (999) na header (1000) */
   }
 }

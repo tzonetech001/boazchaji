@@ -143,3 +143,17 @@ VALUES (
 -- =====================================================
 
 ALTER TABLE users ADD COLUMN status ENUM('active', 'inactive', 'trash') DEFAULT 'active';
+-- 1. Ongeza column ya 'taken' kwenye services
+ALTER TABLE services ADD COLUMN taken BOOLEAN DEFAULT FALSE AFTER status;
+
+-- 2. Tengeneza table ya notifications
+CREATE TABLE IF NOT EXISTS notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sender_id INT DEFAULT NULL,
+    receiver_id INT DEFAULT NULL, -- NULL inamaanisha ni kwa wote (Broadcast)
+    title VARCHAR(100) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

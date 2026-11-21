@@ -3,14 +3,16 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { AuthResponse, User } from '../models/user.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost/boazchaji/backend/api/auth.php';
+  private get apiUrl(): string {
+    return `${environment.baseUrl}/api/auth.php`;
+  }
   
-  // BehaviorSubject inasaidia Header kuona jina la mtumiaji papo hapo
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
@@ -28,13 +30,9 @@ export class AuthService {
           localStorage.setItem('token', response.token);
           localStorage.setItem('user', JSON.stringify(response.user));
           localStorage.setItem('role', response.user.role);
-          this.currentUserSubject.next(response.user);
+          this.currentUserSubject.next(response.user); // Ina-update header papo hapo
         })
       );
-  }
-
-  register(userData: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}?action=register`, userData);
   }
 
   logout() {
@@ -45,22 +43,12 @@ export class AuthService {
     this.router.navigate(['/login']);
   }
 
-  isLoggedIn(): boolean {
-    return !!localStorage.getItem('token');
-  }
-
-  getUserRole(): string {
-    return localStorage.getItem('role') || '';
-  }
-
-  // Ongeza ndani ya AuthService class
+  isLoggedIn(): boolean { return !!localStorage.getItem('token'); }
+  getUserRole(): string { return localStorage.getItem('role') || ''; }
+  getCurrentUser(): User | null { return this.currentUserSubject.value; }
 
   updateCurrentUser(user: User) {
     localStorage.setItem('user', JSON.stringify(user));
     this.currentUserSubject.next(user);
-  }
-
-  getCurrentUser(): User | null {
-    return this.currentUserSubject.value;
   }
 }

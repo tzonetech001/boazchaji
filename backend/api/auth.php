@@ -84,7 +84,9 @@ if ($method === 'POST' && $action === 'register') {
         exit();
     }
 
-    $query = "SELECT id, first_name, second_name, last_name, phone, email, password, role, language, theme FROM users WHERE phone = :phone";
+    // NIMEONGEZA profile_image na created_at HAPA ILI ZIRUDI KWENYE FRONTEND
+    $query = "SELECT id, first_name, second_name, last_name, phone, email, password, role, language, theme, profile_image, created_at 
+              FROM users WHERE phone = :phone";
     $stmt = $conn->prepare($query);
     $stmt->execute([':phone' => $data->phone]);
     
@@ -132,8 +134,6 @@ if ($method === 'POST' && $action === 'register') {
     if ($stmt->rowCount() > 0) {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        // Kwenye mfumo halisi, hapa unatuma email yenye link/token.
-        // Kwa mfano huu, tunarudisha user_id moja kwa moja.
         logActivity($conn, $user['id'], 'FORGOT_PASSWORD_REQUEST', 'Ombi la kurejesha password kwa: ' . $data->email);
         
         echo json_encode([
