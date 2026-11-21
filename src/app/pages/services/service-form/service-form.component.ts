@@ -7,23 +7,20 @@ import { AuthService } from '../../../core/services/auth.service';
 import { Customer } from '../../../core/models/customer.model';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { TranslateModule } from '@ngx-translate/core';
-
+import { TranslatePipe } from '@ngx-translate/core';
 @Component({
   selector: 'app-service-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './service-form.component.html',
   styleUrls: ['./service-form.component.css']
 })
 export class ServiceFormComponent implements OnInit {
   serviceForm: FormGroup;
   
-  // Autocomplete variables
   searchResults: Customer[] = [];
   showDropdown = false;
   
-  // Image variables
   selectedFile: File | null = null;
   imagePreview: string | ArrayBuffer | null = null;
   
@@ -44,18 +41,16 @@ export class ServiceFormComponent implements OnInit {
       device_name: ['', Validators.required],
       quantity: [1, [Validators.required, Validators.min(1)]],
       amount: [300, [Validators.required, Validators.min(0)]],
-      agent_id: [null] // Admin anaweza kuchagua, Agent ni automatic
+      agent_id: [null]
     });
   }
 
   ngOnInit() {
-    // Kama ni agent, chukua ID yake kutoka localStorage
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user.role === 'agent') {
       this.serviceForm.patchValue({ agent_id: user.id });
     }
 
-    // Setup Autocomplete listener
     this.serviceForm.get('customer_name')?.valueChanges
       .pipe(
         debounceTime(300),
@@ -73,7 +68,6 @@ export class ServiceFormComponent implements OnInit {
       });
   }
 
-  // Mtu akichagua mteja kwenye dropdown
   selectCustomer(customer: Customer) {
     this.serviceForm.patchValue({
       customer_id: customer.id,
@@ -82,14 +76,12 @@ export class ServiceFormComponent implements OnInit {
     this.showDropdown = false;
   }
 
-  // Mtu akiandika mteja mpya (asiyekuwepo kwenye database)
   createNewCustomer() {
     const name = this.serviceForm.get('customer_name')?.value;
     if (!name) return;
 
     this.apiService.addCustomer({ name }).subscribe({
       next: (res) => {
-        // Baada ya kuunda, tunapata ID yake
         this.serviceForm.patchValue({ customer_id: res.id });
         this.showDropdown = false;
         alert('Mteja mpya ameongezwa kikamilifu!');
@@ -97,13 +89,10 @@ export class ServiceFormComponent implements OnInit {
     });
   }
 
-  // Image Upload Logic
   onFileSelected(event: any) {
     const file = event.target.files[0];
     if (file) {
       this.selectedFile = file;
-      
-      // Preview picha
       const reader = new FileReader();
       reader.onload = () => {
         this.imagePreview = reader.result;
@@ -115,7 +104,6 @@ export class ServiceFormComponent implements OnInit {
   onSubmit() {
     if (this.serviceForm.invalid || this.isSubmitting) return;
 
-    // Hakikisha customer_id ipo (kama hakuchagua kwenye dropdown)
     if (!this.serviceForm.value.customer_id) {
       alert('Tafadhali chagua mteja au bofya "Add New Customer" kabla ya kuhifadhi.');
       return;
@@ -123,7 +111,6 @@ export class ServiceFormComponent implements OnInit {
 
     this.isSubmitting = true;
 
-    // Tunatengeneza FormData kwa ajili ya kupitisha picha
     const formData = new FormData();
     const formValues = this.serviceForm.value;
     
@@ -143,7 +130,7 @@ export class ServiceFormComponent implements OnInit {
         this.isSubmitting = false;
         this.successMessage = 'Huduma imehifadhiwa kikamilifu!';
         setTimeout(() => {
-          this.router.navigate(['/services']); // Rudi kwenye list
+          this.router.navigate(['/services']);
         }, 2000);
       },
       error: (err) => {

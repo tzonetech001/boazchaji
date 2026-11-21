@@ -2,13 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Service } from '../../../core/models/service.model';
-import { TranslateModule } from '@ngx-translate/core';
-
+import { TranslatePipe } from '@ngx-translate/core';
 @Component({
   selector: 'app-service-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './service-list.component.html',
   styleUrls: ['./service-list.component.css']
 })
@@ -16,10 +16,13 @@ export class ServiceListComponent implements OnInit {
   services: Service[] = [];
   isLoading = true;
   selectedImage: string | null = null;
+  isAdmin = false;
 
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService, private authService: AuthService) {}
 
   ngOnInit() {
+    // Angalia kama mtumiaji ni admin
+    this.isAdmin = this.authService.getUserRole() === 'admin';
     this.loadServices();
   }
 
@@ -44,7 +47,6 @@ export class ServiceListComponent implements OnInit {
     if (confirm(`Je, una uhakika ${service.customer_name} amelia? Huduma itahamishwa kwenye Historia.`)) {
       this.apiService.markAsPaid(service.id!).subscribe({
         next: () => {
-          // Ondoa kwenye list ya pending
           this.services = this.services.filter(s => s.id !== service.id);
         }
       });

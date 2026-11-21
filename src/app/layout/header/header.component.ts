@@ -1,11 +1,9 @@
-import { Component, EventEmitter, Output, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, EventEmitter, Output, OnInit, Inject } from '@angular/core';
+import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
 import { ThemeService } from '../../core/services/theme.service';
 import { AuthService } from '../../core/services/auth.service';
-import { TranslateService } from '@ngx-translate/core'; // Assume umesha-install
-
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 @Component({
   selector: 'app-header',
   standalone: true,
@@ -20,24 +18,28 @@ export class HeaderComponent implements OnInit {
   isDropdownOpen = false;
   currentLang = 'sw';
   
-  // Hizi zingine zinapaswa kutoka kwenye AuthService baada ya kulogin
-  userName = 'John Doe';
+  userName = 'Mtumiaji';
   userRole = 'Agent';
-  userProfileImage = 'https://ui-avatars.com/api/?name=John+Doe&background=0284c7&color=fff'; // Default Profile Image
+  userProfileImage = 'https://ui-avatars.com/api/?name=User&background=0284c7&color=fff';
 
   constructor(
     private themeService: ThemeService,
     private authService: AuthService,
     private router: Router,
-    private translate: TranslateService
+    @Inject(TranslateService) private translate: TranslateService
   ) {}
 
   ngOnInit() {
     this.isDarkMode = this.themeService.isDarkMode();
-    this.currentLang = this.translate.currentLang || 'sw';
+    this.currentLang = this.translate.currentLang() || 'sw';
     
-    // Kama una data za mtumiaji kutoka kwenye localStorage au AuthService
-    // this.userName = this.authService.getUser().firstName;
+    // Chukua taarifa za mtumiaji kutoka AuthService
+    const user = this.authService.getCurrentUser();
+    if (user) {
+      this.userName = `${user.first_name} ${user.last_name}`;
+      this.userRole = user.role === 'admin' ? 'Admin' : 'Agent';
+      this.userProfileImage = `https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=0284c7&color=fff`;
+    }
   }
 
   toggleSidebar() {

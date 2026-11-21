@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { ApiService } from '../../core/services/api.service';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { TranslateService, TranslatePipe } from '@ngx-translate/core';
+import { ThemeService } from '../../core/services/theme.service';
 
 @Component({
   selector: 'app-settings',
@@ -11,67 +12,33 @@ import { ApiService } from '../../core/services/api.service';
   styleUrls: ['./settings.component.css']
 })
 export class SettingsComponent implements OnInit {
-  agents: any[] = [];
-  agentForm: FormGroup;
-  showForm = false;
-  isLoading = true;
-  successMessage = '';
-  errorMessage = '';
+  settingsForm: FormGroup;
 
-  constructor(private apiService: ApiService, private fb: FormBuilder) {
-    this.agentForm = this.fb.group({
-      first_name: ['', Validators.required],
-      second_name: [''],
-      last_name: ['', Validators.required],
-      phone: ['', [Validators.required, Validators.pattern('^(07|06)[0-9]{8}$')]],
-      email: [''],
-      sex: ['Male', Validators.required],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+  constructor(
+    private fb: FormBuilder,
+    @Inject(TranslateService) private translate: TranslateService,
+    private themeService: ThemeService
+  ) {
+    this.settingsForm = this.fb.group({
+      language: [this.translate.currentLang() || 'sw'],
+      theme: [this.themeService.isDarkMode() ? 'dark' : 'light']
     });
   }
 
   ngOnInit() {
-    this.loadAgents();
-  }
-
-  loadAgents() {
-    this.apiService.getAgents().subscribe({
-      next: (data) => {
-        this.agents = data;
-        this.isLoading = false;
-      },
-      error: () => this.isLoading = false
+    // Weka thamani ya sasa kwenye form
+    this.settingsForm.patchValue({
+      language: this.translate.currentLang() || 'sw',
+      theme: this.themeService.isDarkMode() ? 'dark' : 'light'
     });
-  }
 
-  toggleForm() {
-    this.showForm = !this.showForm;
-    this.successMessage = '';
-    this.errorMessage = '';
-    this.agentForm.reset({ sex: 'Male' });
-  }
-
-  onSubmit() {
-    if (this.agentForm.invalid) return;
-
-    this.apiService.addAgent(this.agentForm.value).subscribe({
-      next: (res) => {
-        this.successMessage = res.message;
-        this.agentForm.reset({ sex: 'Male' });
-        this.loadAgents();
-        setTimeout(() => this.showForm = false, 2000);
-      },
-      error: (err) => {
-        this.errorMessage = err.error.message || 'Hitilafu imetokea.';
-      }
+    // Sikiliza mabadiliko ya form papo hapo
+    this.settingsForm.get('language')?.valueChanges.subscribe(lang => {
+      this.translate.use(lang);
     });
-  }
 
-  deleteAgent(id: number) {
-    if (confirm('Una uhakika unataka kumfuta agent huyu?')) {
-      this.apiService.deleteAgent(id).subscribe({
-        next: () => this.loadAgents()
-      });
-    }
+    this.settingsForm.get('theme')?.valueChanges.subscribe(theme => {
+      this.themeService.setTheme(theme);
+    });
   }
 }

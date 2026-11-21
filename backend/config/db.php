@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 $host = "localhost";
-$db_name = "boazchaji";
+$db_name = "boazchaji_db";
 $username = "root"; // Badilisha kama una password
 $password = "";     // Badilisha kama una password
 

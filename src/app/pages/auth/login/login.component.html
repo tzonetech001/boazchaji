@@ -1,24 +1,28 @@
 <div class="login-container">
   <div class="login-card">
     
-    <!-- Logo & Title -->
+    <!-- Header -->
     <div class="login-header">
       <img src="boaz.jpg" alt="BOAZCHAJI Logo" class="login-logo">
       <h1>BOAZCHAJI</h1>
-      <p>{{ 'LOGIN.WELCOME' | translate }}</p>
+      <p *ngIf="currentView === 'login'">Karibu tena. Tafadhali ingia.</p>
+      <p *ngIf="currentView === 'forgot'">Weka email yako kurejesha password.</p>
+      <p *ngIf="currentView === 'reset'">Weka password yako mpya.</p>
     </div>
 
-    <!-- Error Message -->
+    <!-- Alerts -->
     <div class="alert-error" *ngIf="errorMessage">
       <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
     </div>
+    <div class="alert-success" *ngIf="successMessage">
+      <i class="fas fa-check-circle"></i> {{ successMessage }}
+    </div>
 
-    <!-- Login Form -->
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+    <!-- ================= VIEW 1: LOGIN ================= -->
+    <form [formGroup]="loginForm" (ngSubmit)="onLogin()" *ngIf="currentView === 'login'">
       
-      <!-- Phone Input -->
       <div class="form-group">
-        <label>{{ 'LOGIN.PHONE' | translate }}</label>
+        <label>Namba ya Simu</label>
         <div class="input-wrapper">
           <i class="fas fa-phone"></i>
           <input type="tel" formControlName="phone" placeholder="07XXXXXXXX" maxlength="10">
@@ -28,24 +32,87 @@
         </small>
       </div>
 
-      <!-- Password Input -->
       <div class="form-group">
-        <label>{{ 'LOGIN.PASSWORD' | translate }}</label>
+        <label>Password</label>
         <div class="input-wrapper">
           <i class="fas fa-lock"></i>
-          <input type="password" formControlName="password" placeholder="********">
+          <input [type]="showPassword ? 'text' : 'password'" formControlName="password" placeholder="********">
+          <!-- View / Hide Icon -->
+          <i class="fas toggle-password" 
+             [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'" 
+             (click)="showPassword = !showPassword"></i>
         </div>
       </div>
 
-      <!-- Submit Button -->
+      <div class="form-options">
+        <a (click)="switchView('forgot')" class="forgot-link">Umesahau Password?</a>
+      </div>
+
       <button type="submit" class="btn-primary" [disabled]="loginForm.invalid || isLoading">
-        <span *ngIf="!isLoading">{{ 'LOGIN.BUTTON' | translate }}</span>
+        <span *ngIf="!isLoading">Ingia</span>
+        <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+      </button>
+    </form>
+
+    <!-- ================= VIEW 2: FORGOT PASSWORD ================= -->
+    <form [formGroup]="forgotForm" (ngSubmit)="onForgotPassword()" *ngIf="currentView === 'forgot'">
+      <div class="form-group">
+        <label>Email Yako</label>
+        <div class="input-wrapper">
+          <i class="fas fa-envelope"></i>
+          <input type="email" formControlName="email" placeholder="mfano@gmail.com">
+        </div>
+        <small class="error-text" *ngIf="forgotForm.get('email')?.invalid && forgotForm.get('email')?.touched">
+          Weka email sahihi.
+        </small>
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="forgotForm.invalid || isLoading">
+        <span *ngIf="!isLoading">Tafuta Email</span>
+        <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+      </button>
+
+      <div class="form-options center">
+        <a (click)="switchView('login')" class="back-link"><i class="fas fa-arrow-left"></i> Rudi Login</a>
+      </div>
+    </form>
+
+    <!-- ================= VIEW 3: RESET PASSWORD ================= -->
+    <form [formGroup]="resetForm" (ngSubmit)="onResetPassword()" *ngIf="currentView === 'reset'">
+      
+      <div class="form-group">
+        <label>Password Mpya</label>
+        <div class="input-wrapper">
+          <i class="fas fa-key"></i>
+          <input [type]="showNewPassword ? 'text' : 'password'" formControlName="new_password" placeholder="********">
+          <i class="fas toggle-password" 
+             [ngClass]="showNewPassword ? 'fa-eye-slash' : 'fa-eye'" 
+             (click)="showNewPassword = !showNewPassword"></i>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Rudia Password Mpya</label>
+        <div class="input-wrapper">
+          <i class="fas fa-lock"></i>
+          <input [type]="showConfirmPassword ? 'text' : 'password'" formControlName="confirm_password" placeholder="********">
+          <i class="fas toggle-password" 
+             [ngClass]="showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'" 
+             (click)="showConfirmPassword = !showConfirmPassword"></i>
+        </div>
+        <small class="error-text" *ngIf="resetForm.hasError('mismatch') && resetForm.get('confirm_password')?.touched">
+          Password hazifanani.
+        </small>
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="resetForm.invalid || isLoading">
+        <span *ngIf="!isLoading">Badilisha Password</span>
         <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
       </button>
     </form>
 
     <div class="login-footer">
-      <p>&copy; 2024 BOAZCHAJI. All rights reserved.</p>
+      <p>&copy; 2026 BOAZCHAJI. All rights reserved.</p>
     </div>
   </div>
 </div>

@@ -6,7 +6,6 @@
   background-color: var(--bg-color);
 }
 
-/* Sidebar takes fixed width on desktop */
 app-sidebar {
   width: 260px;
   flex-shrink: 0;
@@ -28,11 +27,28 @@ app-sidebar {
   padding: 20px;
   overflow-y: auto;
   background-color: var(--bg-secondary);
+  /* Hii inafanya content ichukue nafasi yote */
+  width: 100%; 
 }
 
-.sidebar-overlay {
-  display: none;
+/* Footer Styles */
+.app-footer {
+  height: 20px; /* Urefu kama ulivyoomba */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* Kulia */
+  padding-right: 15px;
+  background-color: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
+
+.app-footer p { margin: 0; }
+
+.footer-link { text-decoration: none; font-weight: 600; }
+.footer-link .tz { color: #0284c7; /* Blue */ }
+.footer-link .tech { color: #ff7f50; /* Coral */ }
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {

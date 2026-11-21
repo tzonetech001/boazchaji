@@ -9,10 +9,12 @@
     </a>
   </div>
 
+  <!-- Loading State -->
   <div class="loading" *ngIf="isLoading">
     <i class="fas fa-spinner fa-spin"></i> Inapakia...
   </div>
 
+  <!-- Empty State -->
   <div class="empty-state" *ngIf="!isLoading && services.length === 0">
     <i class="fas fa-check-circle"></i>
     <h3>Hakuna kazi inayosubiri!</h3>
@@ -24,20 +26,24 @@
     <table class="data-table">
       <thead>
         <tr>
+          <th>#</th>
           <th>Mteja</th>
           <th>Kifaa</th>
           <th>Idadi</th>
           <th>Jumla (TZS)</th>
           <th>Picha</th>
           <th>Tarehe</th>
+          <!-- Onyesha Agent kama ni Admin tu -->
+          <th *ngIf="isAdmin">Agent</th>
           <th>Action</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let service of services">
+        <tr *ngFor="let service of services; let i = index">
+          <td>{{ i + 1 }}</td>
           <td>
             <strong>{{ service.customer_name }}</strong><br>
-            <small>{{ service.customer_phone }}</small>
+            <small>{{ service.customer_phone || 'Hakuna namba' }}</small>
           </td>
           <td>
             {{ service.device_name }}<br>
@@ -52,6 +58,12 @@
             <span *ngIf="!service.image_path" class="text-muted">Hakuna</span>
           </td>
           <td>{{ service.created_at | date:'short' }}</td>
+          <!-- Onyesha Agent kama ni Admin tu -->
+          <td *ngIf="isAdmin">
+            <span class="agent-badge">
+              <i class="fas fa-user-tie"></i> {{ service.agent_name || 'Haijulikani' }}
+            </span>
+          </td>
           <td>
             <button class="btn-success" (click)="markPaid(service)">
               <i class="fas fa-check"></i> Amelipa
@@ -67,6 +79,6 @@
 <div class="modal-overlay" *ngIf="selectedImage" (click)="closeImage()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <button class="close-btn" (click)="closeImage()"><i class="fas fa-times"></i></button>
-    <img [src]="selectedImage" alt="Device Image">
+    <img [src]="selectedImage" alt="Picha ya Kifaa">
   </div>
 </div>

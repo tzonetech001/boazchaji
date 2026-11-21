@@ -1,10 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
-import { TranslateService } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { User } from '../../core/models/user.model';
 
 @Component({
@@ -30,7 +30,7 @@ export class ProfileComponent implements OnInit {
     private apiService: ApiService,
     private authService: AuthService,
     private themeService: ThemeService,
-    private translate: TranslateService
+    @Inject(TranslateService) private translate: TranslateService
   ) {
     this.profileForm = this.fb.group({
       first_name: ['', Validators.required],
@@ -76,11 +76,9 @@ export class ProfileComponent implements OnInit {
     
     this.apiService.updateProfile(payload).subscribe({
       next: (res) => {
-        // Update localStorage
         const updatedUser = { ...this.user, ...this.profileForm.value } as User;
         this.authService.updateCurrentUser(updatedUser);
         
-        // Badilisha theme na lugha papo hapo
         this.themeService.setTheme(this.profileForm.value.theme);
         this.translate.use(this.profileForm.value.language);
 
