@@ -1,0 +1,21 @@
+{
+  "MENU": {
+    "DASHBOARD": "Dashibodi",
+    "SERVICES": "Huduma",
+    "HISTORY": "Historia",
+    "MANAGE_AGENTS": "Wasimamizi (Agents)"
+  },
+  "COMMON": {
+    "SAVE": "Hifadhi",
+    "CANCEL": "Ghairi",
+    "SEARCH": "Tafuta",
+    "PAID": "Amelipa",
+    "PENDING": "Hajalipa"
+  },
+  "LOGIN": {
+  "WELCOME": "Karibu tena. Tafadhali ingia kwenye akaunti yako.",
+  "PHONE": "Namba ya Simu",
+  "PASSWORD": "Neno la Siri",
+  "BUTTON": "Ingia"
+}
+}

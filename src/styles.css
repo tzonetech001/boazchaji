@@ -1,1 +1,55 @@
-/* You can add global styles to this file, and also import other style files */
+/* src/styles.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Light Theme Colors (Blue, Light Blue, White) */
+  --primary-color: #0284c7;       /* Blue */
+  --primary-hover: #0369a1;       /* Darker Blue */
+  --bg-color: #ffffff;            /* White */
+  --bg-secondary: #e0f2fe;        /* Light Blue */
+  --text-color: #1e293b;          /* Dark Slate for text */
+  --text-muted: #64748b;
+  --border-color: #cbd5e1;
+  --card-bg: #ffffff;
+  --sidebar-bg: #f8fafc;
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+}
+
+[data-theme="dark"] {
+  /* Dark Theme Colors */
+  --primary-color: #38bdf8;       /* Lighter Blue for dark mode */
+  --primary-hover: #0ea5e9;
+  --bg-color: #0f172a;            /* Very Dark Blue */
+  --bg-secondary: #1e293b;        /* Dark Slate */
+  --text-color: #f8fafc;          /* White text */
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --card-bg: #1e293b;
+  --sidebar-bg: #0b1120;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 4px;
+}

@@ -1,0 +1,51 @@
+<div class="login-container">
+  <div class="login-card">
+    
+    <!-- Logo & Title -->
+    <div class="login-header">
+      <img src="boaz.jpg" alt="BOAZCHAJI Logo" class="login-logo">
+      <h1>BOAZCHAJI</h1>
+      <p>{{ 'LOGIN.WELCOME' | translate }}</p>
+    </div>
+
+    <!-- Error Message -->
+    <div class="alert-error" *ngIf="errorMessage">
+      <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
+    </div>
+
+    <!-- Login Form -->
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      
+      <!-- Phone Input -->
+      <div class="form-group">
+        <label>{{ 'LOGIN.PHONE' | translate }}</label>
+        <div class="input-wrapper">
+          <i class="fas fa-phone"></i>
+          <input type="tel" formControlName="phone" placeholder="07XXXXXXXX" maxlength="10">
+        </div>
+        <small class="error-text" *ngIf="loginForm.get('phone')?.invalid && loginForm.get('phone')?.touched">
+          Namba lazima ianze na 07 au 06 na iwe na tarakimu 10.
+        </small>
+      </div>
+
+      <!-- Password Input -->
+      <div class="form-group">
+        <label>{{ 'LOGIN.PASSWORD' | translate }}</label>
+        <div class="input-wrapper">
+          <i class="fas fa-lock"></i>
+          <input type="password" formControlName="password" placeholder="********">
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" class="btn-primary" [disabled]="loginForm.invalid || isLoading">
+        <span *ngIf="!isLoading">{{ 'LOGIN.BUTTON' | translate }}</span>
+        <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <p>&copy; 2024 BOAZCHAJI. All rights reserved.</p>
+    </div>
+  </div>
+</div>

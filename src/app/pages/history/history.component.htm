@@ -1,0 +1,60 @@
+<div class="list-container">
+  <div class="list-header">
+    <div>
+      <h2><i class="fas fa-history"></i> Historia ya Malipo</h2>
+      <p>Hizi ni kazi zote ambazo zimekamilika na kulipiwa.</p>
+    </div>
+  </div>
+
+  <div class="loading" *ngIf="isLoading">
+    <i class="fas fa-spinner fa-spin"></i> Inapakia...
+  </div>
+
+  <div class="empty-state" *ngIf="!isLoading && services.length === 0">
+    <i class="fas fa-folder-open"></i>
+    <h3>Historia ni tupu!</h3>
+    <p>Hakuna huduma iliyolipiwa bado.</p>
+  </div>
+
+  <div class="table-responsive" *ngIf="!isLoading && services.length > 0">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Mteja</th>
+          <th>Kifaa</th>
+          <th>Idadi</th>
+          <th>Jumla (TZS)</th>
+          <th>Picha</th>
+          <th>Tarehe ya Malipo</th>
+          <th>Hali</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let service of services">
+          <td>
+            <strong>{{ service.customer_name }}</strong><br>
+            <small>{{ service.customer_phone }}</small>
+          </td>
+          <td>{{ service.device_name }}<br><small class="badge">{{ service.device_type_name }}</small></td>
+          <td>{{ service.quantity }}</td>
+          <td class="amount">{{ service.amount * service.quantity | number }}</td>
+          <td>
+            <button class="btn-icon" *ngIf="service.image_path" (click)="viewImage(service.image_path!)">
+              <i class="fas fa-image"></i> Ona
+            </button>
+          </td>
+          <td>{{ service.created_at | date:'medium' }}</td>
+          <td><span class="status-paid"><i class="fas fa-check-circle"></i> Amelipa</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal-overlay" *ngIf="selectedImage" (click)="closeImage()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <button class="close-btn" (click)="closeImage()"><i class="fas fa-times"></i></button>
+    <img [src]="selectedImage" alt="Device Image">
+  </div>
+</div>

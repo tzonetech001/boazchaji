@@ -1,0 +1,21 @@
+{
+  "MENU": {
+    "DASHBOARD": "Dashboard",
+    "SERVICES": "Services",
+    "HISTORY": "History",
+    "MANAGE_AGENTS": "Manage Agents"
+  },
+  "COMMON": {
+    "SAVE": "Save",
+    "CANCEL": "Cancel",
+    "SEARCH": "Search",
+    "PAID": "Paid",
+    "PENDING": "Pending"
+  },
+  "LOGIN": {
+  "WELCOME": "Welcome back. Please login to your account.",
+  "PHONE": "Phone Number",
+  "PASSWORD": "Password",
+  "BUTTON": "Login"
+}
+}

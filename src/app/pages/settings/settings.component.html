@@ -1,0 +1,97 @@
+<div class="settings-container">
+  <div class="settings-header">
+    <div>
+      <h2><i class="fas fa-users-cog"></i> Usimamizi wa Agents</h2>
+      <p>Ongeza au simamia agents wote wa mfumo.</p>
+    </div>
+    <button class="btn-primary" (click)="toggleForm()">
+      <i class="fas" [ngClass]="showForm ? 'fa-times' : 'fa-plus'"></i>
+      {{ showForm ? 'Funga' : 'Ongeza Agent' }}
+    </button>
+  </div>
+
+  <!-- Form ya Kuongeza Agent -->
+  <div class="form-card" *ngIf="showForm">
+    <div class="alert-success" *ngIf="successMessage"><i class="fas fa-check"></i> {{ successMessage }}</div>
+    <div class="alert-error" *ngIf="errorMessage"><i class="fas fa-exclamation"></i> {{ errorMessage }}</div>
+
+    <form [formGroup]="agentForm" (ngSubmit)="onSubmit()">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Jina la Kwanza *</label>
+          <input type="text" formControlName="first_name" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Jina la Kati</label>
+          <input type="text" formControlName="second_name" class="form-control">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Jina la Mwisho *</label>
+          <input type="text" formControlName="last_name" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Jinsia *</label>
+          <select formControlName="sex" class="form-control">
+            <option value="Male">Me</option>
+            <option value="Female">Ke</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Namba ya Simu *</label>
+          <input type="tel" formControlName="phone" class="form-control" placeholder="07XXXXXXXX">
+          <small class="error-text" *ngIf="agentForm.get('phone')?.invalid && agentForm.get('phone')?.touched">Lazima ianze na 07 au 06.</small>
+        </div>
+        <div class="form-group">
+          <label>Email (Hiari)</label>
+          <input type="email" formControlName="email" class="form-control">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Password ya Awali *</label>
+        <input type="password" formControlName="password" class="form-control">
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="agentForm.invalid">
+        <i class="fas fa-save"></i> Hifadhi Agent
+      </button>
+    </form>
+  </div>
+
+  <!-- Orodha ya Agents -->
+  <div class="table-responsive" *ngIf="!isLoading">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Jina Kamili</th>
+          <th>Simu</th>
+          <th>Jinsia</th>
+          <th>Email</th>
+          <th>Tarehe</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let agent of agents; let i = index">
+          <td>{{ i + 1 }}</td>
+          <td><strong>{{ agent.first_name }} {{ agent.last_name }}</strong></td>
+          <td>{{ agent.phone }}</td>
+          <td>{{ agent.sex }}</td>
+          <td>{{ agent.email || '-' }}</td>
+          <td>{{ agent.created_at | date:'shortDate' }}</td>
+          <td>
+            <button class="btn-danger" (click)="deleteAgent(agent.id)"><i class="fas fa-trash"></i></button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="empty-state" *ngIf="agents.length === 0">Hakuna agents bado.</div>
+  </div>
+</div>

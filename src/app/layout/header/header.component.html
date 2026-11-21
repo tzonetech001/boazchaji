@@ -1,0 +1,45 @@
+<header class="header">
+  <div class="header-left">
+    <!-- Hamburger Menu for Mobile -->
+    <button class="hamburger" (click)="toggleSidebar()">
+      <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Logo -->
+    <div class="logo-container">
+      <img src="boaz.jpg" alt="BOAZCHAJI Logo" class="logo-img">
+      <span class="logo-text">BOAZCHAJI</span>
+    </div>
+  </div>
+
+  <div class="header-right">
+    <!-- Language Toggle -->
+    <button class="icon-btn" (click)="toggleLanguage()">
+      <i class="fas fa-globe"></i>
+      <span class="lang-text">{{ currentLang === 'sw' ? 'SW' : 'EN' }}</span>
+    </button>
+
+    <!-- Theme Toggle -->
+    <button class="icon-btn" (click)="toggleTheme()">
+      <i class="fas" [ngClass]="isDarkMode ? 'fa-sun' : 'fa-moon'"></i>
+    </button>
+
+    <!-- Profile Dropdown -->
+    <div class="profile-dropdown">
+      <div class="profile-info" (click)="toggleDropdown()">
+        <img [src]="userProfileImage" alt="Profile" class="profile-img">
+        <div class="user-details hide-on-mobile">
+          <span class="user-name">{{ userName }}</span>
+          <span class="user-role">{{ userRole }}</span>
+        </div>
+        <i class="fas fa-chevron-down"></i>
+      </div>
+      
+      <!-- Dropdown Menu -->
+      <div class="dropdown-menu" [class.show]="isDropdownOpen">
+        <a routerLink="/settings" class="dropdown-item"><i class="fas fa-cog"></i> Settings</a>
+        <a (click)="logout()" class="dropdown-item text-danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+      </div>
+    </div>
+  </div>
+</header>
