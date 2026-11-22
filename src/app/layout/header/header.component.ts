@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { ThemeService } from '../../core/services/theme.service';
 import { AuthService } from '../../core/services/auth.service';
 import { LanguageService } from '../../core/services/language.service';
+import { NotificationService } from '../../core/services/notification.service'; // Import Service
 import { environment } from '../../../environments/environment';
 import { User } from '../../core/models/user.model';
 
@@ -19,6 +20,7 @@ export class HeaderComponent implements OnInit {
 
   private themeService = inject(ThemeService);
   private authService  = inject(AuthService);
+  private notifService = inject(NotificationService); // Inject Service
   private router       = inject(Router);
   langService          = inject(LanguageService);
 
@@ -27,23 +29,27 @@ export class HeaderComponent implements OnInit {
   userName = 'Mtumiaji';
   userRole = 'agent';
   userProfileImage = 'https://ui-avatars.com/api/?name=User&background=0284c7&color=fff';
+  
+  // Kwa ajili ya Notifications
+  unreadCount = 0;
 
   translations: Record<string, Record<string, string>> = {
     sw: {
       settings: 'Mipangilio', profile: 'Wasifu', logout: 'Toka',
       admin: 'Msimamizi', agent: 'Wakala', switchLanguage: 'Badilisha Lugha',
-      toggleTheme: 'Badilisha Mwonekano', menu: 'Menyu'
+      toggleTheme: 'Badilisha Mwonekano', menu: 'Menyu', notifications: 'Taarifa'
     },
     en: {
       settings: 'Settings', profile: 'Profile', logout: 'Logout',
       admin: 'Administrator', agent: 'Agent', switchLanguage: 'Switch Language',
-      toggleTheme: 'Toggle Theme', menu: 'Menu'
+      toggleTheme: 'Toggle Theme', menu: 'Menu', notifications: 'Notifications'
     }
   };
 
   ngOnInit() {
     this.isDarkMode = this.themeService.isDarkMode();
     
+    // 1. Sikiliza mabadiliko ya User (Profile)
     this.authService.currentUser$.subscribe((user: User | null) => {
       if (user) {
         this.userName = `${user.first_name} ${user.last_name}`;
@@ -51,12 +57,19 @@ export class HeaderComponent implements OnInit {
         
         const profileImage = (user as User & { profile_image?: string | null }).profile_image;
         if (profileImage) {
-          // Hapa tunatumia baseUrl kutoka environment
           this.userProfileImage = `${environment.baseUrl}/uploads/${profileImage}`;
         } else {
           this.userProfileImage = `https://ui-avatars.com/api/?name=${user.first_name}+${user.last_name}&background=0284c7&color=fff`;
         }
+
+        // Vuta taarifa mara moja mtumiaji akishaingia
+        this.notifService.getNotifications(user.id, user.role).subscribe();
       }
+    });
+
+    // 2. Sikiliza idadi ya taarifa ambazo hazijasomwa (On-spot)
+    this.notifService.unreadCount$.subscribe(count => {
+      this.unreadCount = count;
     });
   }
 

@@ -169,3 +169,7 @@ ALTER TABLE services MODIFY COLUMN image_path LONGTEXT;
 ALTER TABLE notifications ADD COLUMN attachment_path VARCHAR(255) DEFAULT NULL;
 -- 2. Kuongeza column ya type (kutofautisha 'system' na 'message')
 ALTER TABLE notifications ADD COLUMN type ENUM('system', 'message') DEFAULT 'message';
+
+-- Kuongeza tracking ya failed attempts na lockout
+ALTER TABLE users ADD COLUMN failed_attempts INT DEFAULT 0;
+ALTER TABLE users ADD COLUMN lockout_until DATETIME DEFAULT NULL;

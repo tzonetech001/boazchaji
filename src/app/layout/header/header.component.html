@@ -11,17 +11,29 @@
   </div>
 
   <div class="header-right">
-    <!-- Kitufe cha Lugha kwa kutumia Flag za Picha -->
+    
+    <!-- 1. NOTIFICATION BELL (Mpya) -->
+    <button class="icon-btn notif-btn" routerLink="/notifications" [title]="t('notifications')">
+      <i class="fas fa-bell"></i>
+      <!-- Badge ya Idadi (Inaonekana kama kuna taarifa) -->
+      <span class="notif-badge" *ngIf="unreadCount > 0">
+        {{ unreadCount > 99 ? '99+' : unreadCount }}
+      </span>
+    </button>
+
+    <!-- 2. LANGUAGE TOGGLE -->
     <button class="icon-btn" (click)="toggleLanguage()" [title]="t('switchLanguage')">
       <img [src]="'assets/icons/' + (langService.lang() === 'sw' ? 'sw' : 'gb') + '.svg'" 
            alt="Flag" 
            class="lang-flag">
     </button>
 
+    <!-- 3. THEME TOGGLE -->
     <button class="icon-btn" (click)="toggleTheme()" [title]="t('toggleTheme')">
       <i class="fas" [ngClass]="isDarkMode ? 'fa-sun' : 'fa-moon'"></i>
     </button>
 
+    <!-- 4. PROFILE DROPDOWN -->
     <div class="profile-dropdown">
       <div class="profile-info" (click)="toggleDropdown()">
         <img [src]="userProfileImage" alt="Profile" class="profile-img">

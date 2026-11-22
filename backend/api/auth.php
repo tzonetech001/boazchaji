@@ -44,8 +44,8 @@ if ($method === 'POST' && $action === 'register') {
     }
 
     // Hifadhi mtumiaji
-    $query = "INSERT INTO users (first_name, second_name, last_name, phone, email, sex, password, role) 
-              VALUES (:first_name, :second_name, :last_name, :phone, :email, :sex, :password, :role)";
+    $query = "INSERT INTO users (first_name, second_name, last_name, phone, email, sex, password, role, status) 
+              VALUES (:first_name, :second_name, :last_name, :phone, :email, :sex, :password, :role, 'active')";
     
     $stmt = $conn->prepare($query);
     $hashed_password = password_hash($data->password, PASSWORD_BCRYPT);
@@ -73,7 +73,7 @@ if ($method === 'POST' && $action === 'register') {
     }
 
 // =====================================================
-// LOGIN
+// LOGIN (Imeongezwa Lockout & Deactivated Check)
 // =====================================================
 } elseif ($method === 'POST' && $action === 'login') {
     $data = json_decode(file_get_contents("php://input"));
@@ -84,8 +84,8 @@ if ($method === 'POST' && $action === 'register') {
         exit();
     }
 
-    // NIMEONGEZA profile_image na created_at HAPA ILI ZIRUDI KWENYE FRONTEND
-    $query = "SELECT id, first_name, second_name, last_name, phone, email, password, role, language, theme, profile_image, created_at 
+    // Nimeongeza status, failed_attempts, na lockout_until kwenye SELECT
+    $query = "SELECT id, first_name, second_name, last_name, phone, email, password, role, language, theme, profile_image, status, failed_attempts, lockout_until, created_at 
               FROM users WHERE phone = :phone";
     $stmt = $conn->prepare($query);
     $stmt->execute([':phone' => $data->phone]);
@@ -93,10 +93,32 @@ if ($method === 'POST' && $action === 'register') {
     if ($stmt->rowCount() > 0) {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
+        // 1. Kagua kama akaunti imezuiwa kwa muda (Lockout)
+        if (!empty($user['lockout_until']) && strtotime($user['lockout_until']) > time()) {
+            $remaining = ceil((strtotime($user['lockout_until']) - time()) / 60);
+            http_response_code(403);
+            echo json_encode(["message" => "Akaunti imezuiwa kwa muda. Tafadhali subiri dakika $remaining kabla ya kujaribu tena."]);
+            exit();
+        }
+
+        // 2. Kagua kama akaunti imezimwa na Admin (Deactivated)
+        if (isset($user['status']) && $user['status'] !== 'active') {
+            http_response_code(403);
+            echo json_encode(["message" => "Akaunti yako imezimwa. Tafadhali wasiliana na Msimamizi (Admin)."]);
+            exit();
+        }
+        
+        // 3. Hakiki Password
         if (password_verify($data->password, $user['password'])) {
+            // Kama amefanikiwa, safisha failed attempts na lockout
+            $resetStmt = $conn->prepare("UPDATE users SET failed_attempts = 0, lockout_until = NULL WHERE id = :id");
+            $resetStmt->execute([':id' => $user['id']]);
+
             $token = base64_encode(json_encode(["id" => $user['id'], "role" => $user['role']]));
             
             unset($user['password']);
+            unset($user['failed_attempts']);
+            unset($user['lockout_until']);
             
             logActivity($conn, $user['id'], 'LOGIN', 'Mtumiaji ameingia kwenye mfumo');
             
@@ -107,8 +129,26 @@ if ($method === 'POST' && $action === 'register') {
                 "user" => $user
             ]);
         } else {
+            // Kama amekosea, ongeza idadi ya makosa
+            $newAttempts = $user['failed_attempts'] + 1;
+            $lockout = null;
+
+            if ($newAttempts >= 5) {
+                // Funga akaunti kwa dakika 5
+                $lockout = date('Y-m-d H:i:s', strtotime('+5 minutes'));
+                $newAttempts = 0; // Reset attempts baada ya kufunga
+                $msg = "Umejaribu mara 5 vibaya. Akaunti imezuiwa kwa dakika 5.";
+            } else {
+                $remaining = 5 - $newAttempts;
+                $msg = "Password si sahihi. Umebakiza majaribio $remaining.";
+            }
+
+            // Sasisha database na idadi mpya ya makosa au muda wa lockout
+            $updateStmt = $conn->prepare("UPDATE users SET failed_attempts = :attempts, lockout_until = :lockout WHERE id = :id");
+            $updateStmt->execute([':attempts' => $newAttempts, ':lockout' => $lockout, ':id' => $user['id']]);
+
             http_response_code(401);
-            echo json_encode(["message" => "Password si sahihi."]);
+            echo json_encode(["message" => $msg]);
         }
     } else {
         http_response_code(404);
@@ -165,7 +205,9 @@ if ($method === 'POST' && $action === 'register') {
     }
 
     $newHashed = password_hash($data->password, PASSWORD_BCRYPT);
-    $query = "UPDATE users SET password = :password WHERE id = :id";
+    
+    // Tunabadilisha password na pia kusafisha lockout zote zilizobaki
+    $query = "UPDATE users SET password = :password, failed_attempts = 0, lockout_until = NULL WHERE id = :id";
     $stmt = $conn->prepare($query);
     
     try {

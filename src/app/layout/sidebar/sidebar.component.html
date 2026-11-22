@@ -10,16 +10,17 @@
           <i class="fas fa-home"></i><span>{{ t('dashboard') }}</span>
         </a>
       </li>
+       <li>
+        <a routerLink="/customers" routerLinkActive="active" (click)="onLinkClick()">
+          <i class="fas fa-address-book"></i><span>{{ t('customers') }}</span>
+        </a>
+      </li>
       <li>
         <a routerLink="/services" routerLinkActive="active" (click)="onLinkClick()">
           <i class="fas fa-tools"></i><span>{{ t('services') }}</span>
         </a>
       </li>
-      <li>
-        <a routerLink="/customers" routerLinkActive="active" (click)="onLinkClick()">
-          <i class="fas fa-address-book"></i><span>{{ t('customers') }}</span>
-        </a>
-      </li>
+     
      <!-- ... ndani ya Menyu Kuu ... -->
       <li>
         <a routerLink="/history" routerLinkActive="active" (click)="onLinkClick()">
@@ -70,6 +71,6 @@
   </nav>
 
   <div class="sidebar-footer">
-    <p>&copy; BOAZCHAJI</p>
+    <p>TOGETHER WE DID IT!</p>
   </div>
 </aside>

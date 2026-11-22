@@ -1,118 +1,155 @@
-<div class="login-container">
-  <div class="login-card">
-    
-    <!-- Header -->
-    <div class="login-header">
-      <img src="boaz.jpg" alt="BOAZCHAJI Logo" class="login-logo">
+<div class="login-wrapper">
+  
+  <!-- TOP CONTROLS (Lugha & Theme) -->
+  <div class="top-controls">
+    <button class="icon-btn" (click)="toggleLanguage()" [title]="t('changeLangTooltip')">
+      <img [src]="'assets/icons/' + (langService.lang() === 'sw' ? 'sw' : 'gb') + '.svg'" 
+           alt="Flag" class="lang-flag">
+    </button>
+    <button class="icon-btn" (click)="toggleTheme()" [title]="t('changeThemeTooltip')">
+      <i class="fas" [ngClass]="isDarkMode ? 'fa-sun' : 'fa-moon'"></i>
+    </button>
+  </div>
+
+  <!-- LEFT SIDE: Branding (Inaonekana kwenye PC pekee) -->
+  <div class="login-branding">
+    <div class="branding-content">
+      <img src="boaz.jpg" alt="BOAZCHAJI Logo" class="desktop-logo">
       <h1>BOAZCHAJI</h1>
-      <p *ngIf="currentView === 'login'">Karibu tena. Tafadhali ingia.</p>
-      <p *ngIf="currentView === 'forgot'">Weka email yako kurejesha password.</p>
-      <p *ngIf="currentView === 'reset'">Weka password yako mpya.</p>
-    </div>
-
-    <!-- Alerts -->
-    <div class="alert-error" *ngIf="errorMessage">
-      <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
-    </div>
-    <div class="alert-success" *ngIf="successMessage">
-      <i class="fas fa-check-circle"></i> {{ successMessage }}
-    </div>
-
-    <!-- ================= VIEW 1: LOGIN ================= -->
-    <form [formGroup]="loginForm" (ngSubmit)="onLogin()" *ngIf="currentView === 'login'">
-      
-      <div class="form-group">
-        <label>Namba ya Simu</label>
-        <div class="input-wrapper">
-          <i class="fas fa-phone"></i>
-          <input type="tel" formControlName="phone" placeholder="07XXXXXXXX" maxlength="10">
-        </div>
-        <small class="error-text" *ngIf="loginForm.get('phone')?.invalid && loginForm.get('phone')?.touched">
-          Namba lazima ianze na 07 au 06 na iwe na tarakimu 10.
-        </small>
-      </div>
-
-      <div class="form-group">
-        <label>Password</label>
-        <div class="input-wrapper">
-          <i class="fas fa-lock"></i>
-          <input [type]="showPassword ? 'text' : 'password'" formControlName="password" placeholder="********">
-          <!-- View / Hide Icon -->
-          <i class="fas toggle-password" 
-             [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'" 
-             (click)="showPassword = !showPassword"></i>
-        </div>
-      </div>
-
-      <div class="form-options">
-        <a (click)="switchView('forgot')" class="forgot-link">Umesahau Password?</a>
-      </div>
-
-      <button type="submit" class="btn-primary" [disabled]="loginForm.invalid || isLoading">
-        <span *ngIf="!isLoading">Ingia</span>
-        <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
-      </button>
-    </form>
-
-    <!-- ================= VIEW 2: FORGOT PASSWORD ================= -->
-    <form [formGroup]="forgotForm" (ngSubmit)="onForgotPassword()" *ngIf="currentView === 'forgot'">
-      <div class="form-group">
-        <label>Email Yako</label>
-        <div class="input-wrapper">
-          <i class="fas fa-envelope"></i>
-          <input type="email" formControlName="email" placeholder="mfano@gmail.com">
-        </div>
-        <small class="error-text" *ngIf="forgotForm.get('email')?.invalid && forgotForm.get('email')?.touched">
-          Weka email sahihi.
-        </small>
-      </div>
-
-      <button type="submit" class="btn-primary" [disabled]="forgotForm.invalid || isLoading">
-        <span *ngIf="!isLoading">Tafuta Email</span>
-        <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
-      </button>
-
-      <div class="form-options center">
-        <a (click)="switchView('login')" class="back-link"><i class="fas fa-arrow-left"></i> Rudi Login</a>
-      </div>
-    </form>
-
-    <!-- ================= VIEW 3: RESET PASSWORD ================= -->
-    <form [formGroup]="resetForm" (ngSubmit)="onResetPassword()" *ngIf="currentView === 'reset'">
-      
-      <div class="form-group">
-        <label>Password Mpya</label>
-        <div class="input-wrapper">
-          <i class="fas fa-key"></i>
-          <input [type]="showNewPassword ? 'text' : 'password'" formControlName="new_password" placeholder="********">
-          <i class="fas toggle-password" 
-             [ngClass]="showNewPassword ? 'fa-eye-slash' : 'fa-eye'" 
-             (click)="showNewPassword = !showNewPassword"></i>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Rudia Password Mpya</label>
-        <div class="input-wrapper">
-          <i class="fas fa-lock"></i>
-          <input [type]="showConfirmPassword ? 'text' : 'password'" formControlName="confirm_password" placeholder="********">
-          <i class="fas toggle-password" 
-             [ngClass]="showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'" 
-             (click)="showConfirmPassword = !showConfirmPassword"></i>
-        </div>
-        <small class="error-text" *ngIf="resetForm.hasError('mismatch') && resetForm.get('confirm_password')?.touched">
-          Password hazifanani.
-        </small>
-      </div>
-
-      <button type="submit" class="btn-primary" [disabled]="resetForm.invalid || isLoading">
-        <span *ngIf="!isLoading">Badilisha Password</span>
-        <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
-      </button>
-    </form>
-
-    <div class="login-footer">
-      <p>&copy; 2026 BOAZCHAJI. All rights reserved.</p>
+      <p>{{ t('brandingSubtitle') }}</p>
     </div>
   </div>
+
+  <!-- RIGHT SIDE: Forms -->
+  <div class="login-form-side">
+    <div class="login-card">
+      
+      <!-- Mobile Logo (Inaonekana kwenye simu pekee) -->
+      <div class="mobile-logo-container">
+        <img src="boaz.jpg" alt="BOAZCHAJI Logo" class="mobile-logo">
+      </div>
+
+      <!-- Header -->
+      <div class="login-header">
+        <h2 *ngIf="currentView === 'login'">{{ t('welcomeBack') }}</h2>
+        <h2 *ngIf="currentView === 'forgot'">{{ t('forgotTitle') }}</h2>
+        <h2 *ngIf="currentView === 'reset'">{{ t('resetTitle') }}</h2>
+        
+        <p *ngIf="currentView === 'login'">{{ t('welcomeBackDesc') }}</p>
+        <p *ngIf="currentView === 'forgot'">{{ t('forgotDesc') }}</p>
+        <p *ngIf="currentView === 'reset'">{{ t('resetDesc') }}</p>
+      </div>
+
+      <!-- Alerts -->
+      <div class="alert-error" *ngIf="errorMessage">
+        <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
+      </div>
+      <div class="alert-success" *ngIf="successMessage">
+        <i class="fas fa-check-circle"></i> {{ successMessage }}
+      </div>
+
+      <!-- ================= VIEW 1: LOGIN ================= -->
+      <form [formGroup]="loginForm" (ngSubmit)="onLogin()" *ngIf="currentView === 'login'">
+        
+        <div class="form-group">
+          <label>{{ t('phoneLabel') }}</label>
+          <div class="input-wrapper">
+            <i class="fas fa-phone"></i>
+            <input type="tel" formControlName="phone" [placeholder]="t('phonePlaceholder')" maxlength="10">
+          </div>
+          <small class="error-text" *ngIf="loginForm.get('phone')?.invalid && loginForm.get('phone')?.touched">
+            {{ t('phoneError') }}
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label>{{ t('passwordLabel') }}</label>
+          <div class="input-wrapper">
+            <i class="fas fa-lock"></i>
+            <input [type]="showPassword ? 'text' : 'password'" formControlName="password" placeholder="********">
+            <i class="fas toggle-password" 
+               [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'" 
+               (click)="showPassword = !showPassword"></i>
+          </div>
+        </div>
+
+        <div class="form-options">
+          <a (click)="switchView('forgot')" class="forgot-link">{{ t('forgotPasswordLink') }}</a>
+        </div>
+
+        <button type="submit" class="btn-primary" [disabled]="loginForm.invalid || isLoading">
+          <span *ngIf="!isLoading">{{ t('loginBtn') }}</span>
+          <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+        </button>
+      </form>
+
+      <!-- ================= VIEW 2: FORGOT PASSWORD ================= -->
+      <form [formGroup]="forgotForm" (ngSubmit)="onForgotPassword()" *ngIf="currentView === 'forgot'">
+        <div class="form-group">
+          <label>{{ t('emailLabel') }}</label>
+          <div class="input-wrapper">
+            <i class="fas fa-envelope"></i>
+            <input type="email" formControlName="email" [placeholder]="t('emailPlaceholder')">
+          </div>
+          <small class="error-text" *ngIf="forgotForm.get('email')?.invalid && forgotForm.get('email')?.touched">
+            {{ t('emailError') }}
+          </small>
+        </div>
+
+        <button type="submit" class="btn-primary" [disabled]="forgotForm.invalid || isLoading">
+          <span *ngIf="!isLoading">{{ t('findEmailBtn') }}</span>
+          <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+        </button>
+
+        <div class="form-options center">
+          <a (click)="switchView('login')" class="back-link"><i class="fas fa-arrow-left"></i> {{ t('backToLogin') }}</a>
+        </div>
+      </form>
+
+      <!-- ================= VIEW 3: RESET PASSWORD ================= -->
+      <form [formGroup]="resetForm" (ngSubmit)="onResetPassword()" *ngIf="currentView === 'reset'">
+        
+        <div class="form-group">
+          <label>{{ t('newPasswordLabel') }}</label>
+          <div class="input-wrapper">
+            <i class="fas fa-key"></i>
+            <input [type]="showNewPassword ? 'text' : 'password'" formControlName="new_password" placeholder="********">
+            <i class="fas toggle-password" 
+               [ngClass]="showNewPassword ? 'fa-eye-slash' : 'fa-eye'" 
+               (click)="showNewPassword = !showNewPassword"></i>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>{{ t('confirmPasswordLabel') }}</label>
+          <div class="input-wrapper">
+            <i class="fas fa-lock"></i>
+            <input [type]="showConfirmPassword ? 'text' : 'password'" formControlName="confirm_password" placeholder="********">
+            <i class="fas toggle-password" 
+               [ngClass]="showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'" 
+               (click)="showConfirmPassword = !showConfirmPassword"></i>
+          </div>
+          <small class="error-text" *ngIf="resetForm.hasError('mismatch') && resetForm.get('confirm_password')?.touched">
+            {{ t('passwordMismatch') }}
+          </small>
+        </div>
+
+        <button type="submit" class="btn-primary" [disabled]="resetForm.invalid || isLoading">
+          <span *ngIf="!isLoading">{{ t('resetBtn') }}</span>
+          <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- FOOTER (Chini kulia, 20px height) -->
+  <footer class="login-footer-bar">
+    <p>
+      Developed by 
+      <a href="https://tzonetech.co.tz" target="_blank" class="footer-link">
+        <span class="tz">TZONE</span><span class="tech">TECH</span>
+      </a>
+    </p>
+  </footer>
 </div>

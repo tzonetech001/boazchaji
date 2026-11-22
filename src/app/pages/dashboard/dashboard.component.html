@@ -1,16 +1,30 @@
 <div class="dashboard">
+  
+  <!-- Header -->
   <div class="dashboard-header">
-    <h1>{{ t('welcome') }}, {{ getUserName() }} 👋</h1>
-    <p>{{ t('subtitle') }}</p>
+    <div>
+      <h1>{{ t('welcome') }}, {{ getUserName() }} 👋</h1>
+      <p>{{ t('subtitle') }}</p>
+    </div>
+    
+    <!-- Live Clock -->
+    <div class="live-clock">
+      <i class="fas fa-clock"></i>
+      <div>
+        <span class="time">{{ currentTime }}</span>
+        <small>{{ t('eatTime') }}</small>
+      </div>
+    </div>
   </div>
 
+  <!-- Stat Cards -->
   <div class="stats-grid">
     <div class="stat-card pending">
       <div class="stat-icon"><i class="fas fa-clock"></i></div>
       <div class="stat-body">
         <h3>{{ t('pendingTitle') }}</h3>
         <p class="stat-amount">TZS {{ stats.pending_total | number }}</p>
-        <small>{{ stats.pending_count }} {{ t('records') }} · {{ t('pendingDesc') }}</small>
+        <small>{{ stats.pending_count }} {{ t('records') }}</small>
       </div>
     </div>
 
@@ -19,7 +33,16 @@
       <div class="stat-body">
         <h3>{{ t('paidTitle') }}</h3>
         <p class="stat-amount">TZS {{ stats.paid_total | number }}</p>
-        <small>{{ stats.paid_count }} {{ t('records') }} · {{ t('paidDesc') }}</small>
+        <small>{{ stats.paid_count }} {{ t('records') }}</small>
+      </div>
+    </div>
+
+    <div class="stat-card customers">
+      <div class="stat-icon"><i class="fas fa-address-book"></i></div>
+      <div class="stat-body">
+        <h3>{{ t('customersTitle') }}</h3>
+        <p class="stat-amount">{{ stats.customers_count }}</p>
+        <small>{{ t('customersDesc') }}</small>
       </div>
     </div>
 
@@ -31,5 +54,46 @@
         <small>{{ t('agentsDesc') }}</small>
       </div>
     </div>
+  </div>
+
+  <!-- Middle Section: Graph & Recent Customers -->
+  <div class="middle-grid">
+    
+    <!-- Line Chart -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3><i class="fas fa-chart-line"></i> {{ t('salesGraph') }} ({{ currentMonth }})</h3>
+      </div>
+      <div class="chart-container">
+        <canvas baseChart
+          [data]="lineChartData"
+          [options]="lineChartOptions"
+          [type]="lineChartType">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Recent Customers (Auto Scroll) -->
+    <div class="recent-card">
+      <div class="card-header">
+        <h3><i class="fas fa-list-ul"></i> {{ t('recentCustomers') }}</h3>
+      </div>
+      
+      <div class="recent-list-container">
+        <div class="empty-list" *ngIf="displayCustomers.length === 0">
+          <i class="fas fa-inbox"></i> {{ t('noCustomers') }}
+        </div>
+        
+        <div class="recent-item" *ngFor="let c of displayCustomers | slice:0:4">
+          <div class="avatar">{{ c.name.charAt(0) | uppercase }}</div>
+          <div class="info">
+            <strong>{{ c.name }}</strong>
+            <small>{{ c.phone || 'Hana namba' }}</small>
+          </div>
+          <span class="time-ago">{{ c.created_at | date:'shortTime' }}</span>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
