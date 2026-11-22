@@ -1,9 +1,9 @@
 <?php
+// backend/api/services.php
 require_once '../config/db.php';
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'POST') {
-    // POST itatumika kuongeza huduma mpya
     $agent_id = $_POST['agent_id'] ?? null;
     $customer_id = $_POST['customer_id'] ?? null;
     $device_type_id = $_POST['device_type_id'] ?? null;
@@ -12,19 +12,27 @@ if ($method === 'POST') {
     $amount = $_POST['amount'] ?? 300.00;
     $status = isset($_POST['status']) && $_POST['status'] === 'paid' ? 'paid' : 'pending';
     
-    $image_path = null;
-    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+    // Kushughulikia picha nyingi (Multiple Images)
+    $image_paths = [];
+    if (isset($_FILES['images']) && !empty($_FILES['images']['name'][0])) {
         $uploadDir = __DIR__ . '/../uploads/';
         if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-        $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-        $newFileName = uniqid('device_') . '.' . $ext;
-        if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $newFileName)) {
-            $image_path = 'uploads/' . $newFileName;
+        
+        $count = count($_FILES['images']['name']);
+        for ($i = 0; $i < $count; $i++) {
+            if ($_FILES['images']['error'][$i] === UPLOAD_ERR_OK) {
+                $ext = pathinfo($_FILES['images']['name'][$i], PATHINFO_EXTENSION);
+                $newFileName = uniqid('device_') . '.' . $ext;
+                if (move_uploaded_file($_FILES['images']['tmp_name'][$i], $uploadDir . $newFileName)) {
+                    $image_paths[] = 'uploads/' . $newFileName;
+                }
+            }
         }
     }
+    $image_path = json_encode($image_paths); // Hifadhi kama JSON array
     
-    $query = "INSERT INTO services (agent_id, customer_id, device_type_id, device_name, quantity, amount, image_path, status, taken) 
-              VALUES (:agent_id, :customer_id, :device_type_id, :device_name, :quantity, :amount, :image_path, :status, 0)";
+    $query = "INSERT INTO services (agent_id, customer_id, device_type_id, device_name, quantity, amount, image_path, status, taken, taken_quantity) 
+              VALUES (:agent_id, :customer_id, :device_type_id, :device_name, :quantity, :amount, :image_path, :status, 0, 0)";
     $stmt = $conn->prepare($query);
     
     try {
@@ -34,7 +42,7 @@ if ($method === 'POST') {
             ':image_path' => $image_path, ':status' => $status
         ]);
         
-        // Tuma Notification kwa Admin
+        // Notification kwa Admin
         $agentName = $conn->query("SELECT first_name, last_name FROM users WHERE id = $agent_id")->fetch(PDO::FETCH_ASSOC);
         $agentName = $agentName ? $agentName['first_name'] . ' ' . $agentName['last_name'] : 'Agent';
         $conn->query("INSERT INTO notifications (sender_id, title, message) VALUES ($agent_id, 'Huduma Mpya', 'Agent $agentName ameongeza huduma mpya ya $device_name')");
@@ -47,7 +55,7 @@ if ($method === 'POST') {
 elseif ($method === 'GET') {
     $role = $_GET['role'] ?? 'agent';
     $agent_id = $_GET['agent_id'] ?? null;
-    $status = $_GET['status'] ?? 'pending'; // pending, paid, history
+    $status = $_GET['status'] ?? 'pending';
     $search = $_GET['search'] ?? '';
 
     $query = "SELECT s.*, c.name as customer_name, c.phone as customer_phone, 
@@ -59,9 +67,9 @@ elseif ($method === 'GET') {
               WHERE 1=1";
 
     if ($status === 'history') {
-        $query .= " AND s.status = 'paid' AND s.taken = 1";
+        $query .= " AND s.status = 'paid' AND s.taken_quantity >= s.quantity";
     } elseif ($status === 'pending') {
-        $query .= " AND (s.status = 'pending' OR (s.status = 'paid' AND s.taken = 0))";
+        $query .= " AND (s.status = 'pending' OR (s.status = 'paid' AND s.taken_quantity < s.quantity))";
     } else {
         $query .= " AND s.status = :status";
     }
@@ -81,7 +89,14 @@ elseif ($method === 'GET') {
     if ($search) $stmt->bindValue(':search', "%$search%");
     
     $stmt->execute();
-    echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+    $services = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Decode JSON images
+    foreach ($services as &$s) {
+        $s['images'] = json_decode($s['image_path'] ?? '[]', true);
+    }
+    
+    echo json_encode($services);
 
 } 
 elseif ($method === 'PUT') {
@@ -93,27 +108,38 @@ elseif ($method === 'PUT') {
         $stmt = $conn->prepare($query);
         $stmt->execute([':status' => $data->status, ':id' => $data->id]);
         echo json_encode(["message" => "Hali imebadilishwa"]);
-    } elseif ($data->action === 'take_device') {
-        $query = "UPDATE services SET taken = 1 WHERE id = :id";
+    } elseif ($data->action === 'return_quantity') {
+        $return_qty = $data->return_qty;
+        $query = "UPDATE services SET taken_quantity = taken_quantity + :qty WHERE id = :id";
         $stmt = $conn->prepare($query);
+        $stmt->execute([':qty' => $return_qty, ':id' => $data->id]);
+        
+        // Kagua kama vifaa vyote vimechukuliwa
+        $stmt = $conn->prepare("SELECT taken_quantity, quantity FROM services WHERE id = :id");
         $stmt->execute([':id' => $data->id]);
-        echo json_encode(["message" => "Kifaa kimechukuliwa"]);
+        $s = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($s['taken_quantity'] >= $s['quantity']) {
+            $conn->query("UPDATE services SET taken = 1 WHERE id = {$data->id}");
+        }
+        
+        echo json_encode(["message" => "Vifaa vimerudishwa"]);
     }
 }
 elseif ($method === 'DELETE') {
     $id = $_GET['id'] ?? null;
-    $query = "SELECT status, taken FROM services WHERE id = :id";
+    $query = "SELECT status, taken_quantity FROM services WHERE id = :id";
     $stmt = $conn->prepare($query);
     $stmt->execute([':id' => $id]);
     $service = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($service['status'] === 'paid' && $service['taken'] == 1) {
+    // Ukaguzi: Ruhusu kufuta tu kama haijalipiwa au haijachukuliwa
+    if ($service['status'] === 'paid' && $service['taken_quantity'] > 0) {
+        http_response_code(400);
+        echo json_encode(["message" => "Hauwezi kufuta huduma ambayo imechukuliwa!"]);
+    } else {
         $del = $conn->prepare("DELETE FROM services WHERE id = :id");
         $del->execute([':id' => $id]);
         echo json_encode(["message" => "Imefutwa"]);
-    } else {
-        http_response_code(400);
-        echo json_encode(["message" => "Hauwezi kufuta huduma ambayo haijalipiwa au haijachukuliwa!"]);
     }
 }
 ?>

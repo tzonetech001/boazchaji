@@ -1,43 +1,67 @@
 <div class="list-container">
+
+  <!-- Toast Message -->
+  <div class="alert-overlay" *ngIf="message.text">
+    <div class="alert-box" [ngClass]="message.type">
+      <i class="fas" [ngClass]="message.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
+      {{ message.text }}
+    </div>
+  </div>
+
   <div class="list-header">
     <div>
-      <h2><i class="fas fa-tools"></i> Huduma Zinazosubiri</h2>
+      <h2><i class="fas fa-tools"></i> {{ t('title') }}</h2>
+      <p>{{ t('subtitle') }}</p>
     </div>
-    <a routerLink="/services/new" class="btn-primary"><i class="fas fa-plus"></i> Rekodi Mpya</a>
+    <button class="btn-primary" (click)="openAddModal()">
+      <i class="fas fa-plus"></i> {{ t('addBtn') }}
+    </button>
   </div>
 
-  <div class="search-bar" style="margin-bottom: 20px;">
+  <div class="search-bar">
     <i class="fas fa-search"></i>
-    <input type="text" [(ngModel)]="searchQuery" (input)="applyFilter()" placeholder="Tafuta kwa jina au simu...">
+    <input type="text" [(ngModel)]="searchQuery" (input)="applyFilter()" [placeholder]="t('searchPlaceholder')">
   </div>
 
+  <!-- Table -->
   <div class="table-responsive" *ngIf="!isLoading && filteredServices.length > 0">
     <table class="data-table">
       <thead>
         <tr>
-          <th>Mteja</th>
-          <th>Kifaa</th>
-          <th>Jumla</th>
-          <th>Hali</th>
-          <th *ngIf="isAdmin">Agent</th>
-          <th>Action</th>
+          <th>{{ t('customer') }}</th>
+          <th>{{ t('device') }}</th>
+          <th>{{ t('qty') }}</th>
+          <th>{{ t('status') }}</th>
+          <th *ngIf="isAdmin">{{ t('agent') }}</th>
+          <th class="text-right">{{ t('actions') }}</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let s of filteredServices">
-          <td><strong>{{ s.customer_name }}</strong><br><small>{{ s.customer_phone }}</small></td>
-          <td>{{ s.device_name }} ({{ s.quantity }})</td>
-          <td class="amount">{{ s.amount * s.quantity | number }}</td>
+          <td><strong>{{ s.customer_name }}</strong><br><small class="text-muted">{{ s.customer_phone }}</small></td>
+          <td>{{ s.device_name }}<br><small class="badge">{{ s.device_type_name }}</small></td>
           <td>
-            <span class="badge" [style.background]="s.status === 'paid' ? '#d1fae5' : '#fee2e2'">
-              {{ s.status === 'paid' ? 'Amelipa' : 'Hajalipa' }}
+            {{ s.quantity }} <br>
+            <small class="text-muted" *ngIf="$any(s).taken_quantity > 0">(Zimechukuliwa: {{ $any(s).taken_quantity }})</small>
+          </td>
+          <td>
+            <span class="badge" [ngClass]="s.status === 'paid' ? 'badge-paid' : 'badge-pending'">
+              {{ s.status === 'paid' ? t('paid') : t('pending') }}
             </span>
           </td>
           <td *ngIf="isAdmin">{{ s.agent_name }}</td>
-          <td>
-            <button class="btn-icon" (click)="openView(s)"><i class="fas fa-eye"></i></button>
-            <button class="btn-icon" (click)="openStatusModal(s)"><i class="fas fa-money-bill"></i></button>
-            <button class="btn-success" (click)="openTakeModal(s)">Chukua</button>
+          <td class="text-right">
+            <button class="btn-icon" (click)="openView(s)" [title]="t('view')"><i class="fas fa-eye"></i></button>
+            <button class="btn-icon" (click)="openStatusModal(s)" [title]="t('updateStatus')"><i class="fas fa-money-bill"></i></button>
+            <button class="btn-success" (click)="openReturnModal(s)" style="margin-right:5px;">
+              <i class="fas fa-hand-holding"></i> {{ t('takeDevice') }}
+            </button>
+            <!-- Kitufe cha Kufuta: Kinazimwa kama kifaa kimechukuliwa -->
+            <button class="btn-icon delete" (click)="deleteService(s.id!)" 
+                    [disabled]="s.status === 'paid' && ($any(s).taken_quantity || 0) > 0"
+                    [title]="t('delete')">
+              <i class="fas fa-trash"></i>
+            </button>
           </td>
         </tr>
       </tbody>
@@ -47,45 +71,202 @@
   <!-- Pagination -->
   <div class="pagination" *ngIf="totalPages > 1">
     <button [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">Nyuma</button>
-    <span>Ukurasa {{ currentPage }} kati ya {{ totalPages }}</span>
+    <span>Ukurasa {{ currentPage }} / {{ totalPages }}</span>
     <button [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">Mbele</button>
   </div>
 
-  <!-- MODALS -->
-  <!-- View Modal -->
-  <div class="modal-overlay" *ngIf="showViewModal" (click)="closeModals()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <h3>Taarifa za Huduma</h3>
-      <p><strong>Mteja:</strong> {{ selectedService?.customer_name }}</p>
-      <p><strong>Simu:</strong> {{ selectedService?.customer_phone }}</p>
-      <p><strong>Kifaa:</strong> {{ selectedService?.device_name }} ({{ selectedService?.device_type_name }})</p>
-      <p><strong>Idadi:</strong> {{ selectedService?.quantity }}</p>
-      <p><strong>Jumla:</strong> TZS {{ (selectedService!.amount * selectedService!.quantity) | number }}</p>
-      <button class="btn-secondary" (click)="closeModals()">Funga</button>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: ADD SERVICE -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showAddModal" (click)="closeModals()">
+  <div class="modal-content large-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-plus-circle"></i> {{ t('addService') }}</h3>
+      <button class="close-btn" (click)="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <form [formGroup]="serviceForm" (ngSubmit)="onSubmitAdd()" class="modal-body">
+      <div class="form-group" *ngIf="isAdmin">
+        <label>{{ t('selectAgent') }} <span style="color:red">*</span></label>
+        <select formControlName="agent_id" class="form-control">
+          <option value="">-- {{ t('selectAgent') }} --</option>
+          <option *ngFor="let a of agents" [value]="a.id">{{ a.first_name }} {{ a.last_name }}</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group relative">
+          <label>{{ t('customerName') }} <span style="color:red">*</span></label>
+          <input type="text" formControlName="customer_name" class="form-control" placeholder="Anza kuandika..." autocomplete="off">
+          <div class="autocomplete-dropdown" *ngIf="showDropdown">
+            <div class="dropdown-item" *ngFor="let c of searchResults" (click)="selectCustomer(c)">
+              <strong>{{ c.name }}</strong> - {{ c.phone }}
+            </div>
+          </div>
+          <small class="add-new" *ngIf="!showDropdown && serviceForm.value.customer_name && !serviceForm.value.customer_id" (click)="createNewCustomer()">
+            <i class="fas fa-plus-circle"></i> Hifadhi "{{serviceForm.value.customer_name}}" kama mteja mpya
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label>{{ t('customerPhone') }} <span style="color:red">*</span></label>
+          <input type="tel" formControlName="customer_phone" maxlength="10" class="form-control" placeholder="07XXXXXXXX">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>{{ t('deviceName') }} <span style="color:red">*</span></label>
+          <input type="text" formControlName="device_name" class="form-control" placeholder="Mfano: Samsung A12">
+        </div>
+        <div class="form-group">
+          <label>{{ t('deviceType') }} <span style="color:red">*</span></label>
+          <div style="display:flex; gap:10px;">
+            <select formControlName="device_type_id" class="form-control">
+              <option value="">-- Chagua --</option>
+              <option *ngFor="let d of deviceTypes" [value]="d.id">{{ d.name }}</option>
+            </select>
+            <button type="button" class="btn-primary" (click)="openDeviceTypeModal()" title="Ongeza Aina"><i class="fas fa-plus"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>{{ t('qty') }} <span style="color:red">*</span></label>
+          <input type="number" formControlName="quantity" class="form-control" min="1">
+        </div>
+        <div class="form-group">
+          <label>{{ t('amount') }} <span style="color:red">*</span></label>
+          <input type="number" formControlName="amount" class="form-control">
+        </div>
+      </div>
+
+      <div class="form-group" style="background: var(--bg-secondary); padding: 10px; border-radius: 4px;">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; margin:0;">
+          <input type="checkbox" style="width:18px; height:18px; accent-color: var(--primary-color);" 
+                 [checked]="serviceForm.value.status === 'paid'"
+                 (change)="serviceForm.patchValue({status: $any($event.target).checked ? 'paid' : 'pending'})">
+          <strong>{{ t('paidCheck') }}</strong>
+        </label>
+      </div>
+
+      <!-- Multiple Images -->
+      <div class="form-group">
+        <label>{{ t('image') }}</label>
+        <input type="file" (change)="onFilesSelected($event)" accept="image/*" multiple class="form-control">
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">
+          <div *ngFor="let img of imagePreviews; let i = index" style="position:relative;">
+            <img [src]="img" style="height:60px; border-radius:4px; border:1px solid var(--border-color);">
+            <button type="button" (click)="removeImage(i)" style="position:absolute; top:-5px; right:-5px; background:red; color:white; border:none; border-radius:50%; width:20px; height:20px; font-size:10px; cursor:pointer;"><i class="fas fa-times"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="total-display">
+        <strong>{{ t('total') }}:</strong> 
+        <strong style="color:var(--primary-color); font-size:1.2rem;">TZS {{ (serviceForm.value.quantity * serviceForm.value.amount) | number }}</strong>
+      </div>
+
+      <div class="modal-footer" style="padding:0; border:none; margin-top:10px;">
+        <button type="button" class="btn-secondary" (click)="closeModals()">{{ t('cancel') }}</button>
+        <button type="submit" class="btn-primary" [disabled]="isSubmitting">
+          <i class="fas fa-save" *ngIf="!isSubmitting"></i> 
+          <i class="fas fa-spinner fa-spin" *ngIf="isSubmitting"></i> {{ t('save') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: DEVICE TYPE -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showDeviceTypeModal" (click)="closeModals()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-plus-circle"></i> {{ t('addDeviceType') }}</h3>
+      <button class="close-btn" (click)="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="text" [(ngModel)]="newDeviceTypeName" class="form-control" placeholder="Mfano: TV, Redio, Speaker...">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeModals()">{{ t('cancel') }}</button>
+      <button class="btn-primary" (click)="saveDeviceType()">{{ t('saveDeviceType') }}</button>
     </div>
   </div>
+</div>
 
-  <!-- Status Modal -->
-  <div class="modal-overlay" *ngIf="showStatusModal" (click)="closeModals()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <h3>Badilisha Hali ya Malipo</h3>
-      <p>Je, {{ selectedService?.customer_name }} amelia?</p>
-      <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
-        <button class="btn-primary" (click)="updateStatus('paid')">Ndio, Amelipa</button>
-        <button class="btn-secondary" (click)="updateStatus('pending')">Hapana, Hajalipa</button>
+<!-- ========================================== -->
+<!-- MODAL: VIEW DETAILS -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showViewModal" (click)="closeModals()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-info-circle"></i> {{ t('view') }}</h3>
+      <button class="close-btn" (click)="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-row"><strong>{{ t('customer') }}:</strong> {{ selectedService?.customer_name }}</div>
+      <div class="detail-row"><strong>{{ t('customerPhone') }}:</strong> {{ selectedService?.customer_phone }}</div>
+      <div class="detail-row"><strong>{{ t('device') }}:</strong> {{ selectedService?.device_name }} ({{ selectedService?.device_type_name }})</div>
+      <div class="detail-row"><strong>{{ t('qty') }}:</strong> {{ selectedService?.quantity }} (Zimechukuliwa: {{ $any(selectedService)?.taken_quantity || 0 }})</div>
+      <div class="detail-row"><strong>{{ t('total') }}:</strong> TZS {{ (selectedService!.amount * selectedService!.quantity) | number }}</div>
+      
+      <!-- View Images -->
+      <div class="detail-row" style="flex-direction:column; align-items:flex-start;" *ngIf="$any(selectedService)?.images?.length">
+        <strong>{{ t('image') }}:</strong>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">
+          <img *ngFor="let img of $any(selectedService)?.images" [src]="api.getImageUrl(img)" style="height:80px; border-radius:4px; border:1px solid var(--border-color); cursor:pointer;">
+        </div>
       </div>
     </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="closeModals()">{{ t('close') }}</button>
+    </div>
   </div>
+</div>
 
-  <!-- Take Modal -->
-  <div class="modal-overlay" *ngIf="showTakeModal" (click)="closeModals()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <h3>Amechukua Kifaa?</h3>
-      <p>Je, {{ selectedService?.customer_name }} ameshachukua kifaa chake?</p>
-      <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
-        <button class="btn-primary" (click)="confirmTake()">Ndio, Amechukua</button>
-        <button class="btn-secondary" (click)="closeModals()">Hajachukua</button>
-      </div>
+<!-- ========================================== -->
+<!-- MODAL: UPDATE STATUS -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showStatusModal" (click)="closeModals()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-money-bill"></i> {{ t('confirmStatus') }}</h3>
+      <button class="close-btn" (click)="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body text-center" style="padding:30px 20px;">
+      <p>{{ t('confirmStatusMsg') }}</p>
+      <p><strong>{{ selectedService?.customer_name }}</strong></p>
+    </div>
+    <div class="modal-footer" style="justify-content:center;">
+      <button type="button" class="btn-primary" style="background:#10b981;" (click)="updateStatus('paid')"><i class="fas fa-check"></i> {{ t('yesPaid') }}</button>
+      <button type="button" class="btn-secondary" (click)="updateStatus('pending')">{{ t('noUnpaid') }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: RETURN DEVICE (TAKE QUANTITY) -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showReturnModal" (click)="closeModals()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-hand-holding"></i> {{ t('returnDevice') }}</h3>
+      <button class="close-btn" (click)="closeModals()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body text-center" style="padding:20px;">
+      <p>{{ t('returnMsg') }}</p>
+      <p><strong>{{ selectedService?.customer_name }}</strong> (Total: {{ selectedService?.quantity }})</p>
+      <input type="number" [(ngModel)]="returnQuantity" min="1" [max]="selectedService?.quantity ?? null" class="form-control" style="text-align:center; font-size:1.2rem; margin:15px 0;">
+    </div>
+    <div class="modal-footer" style="justify-content:center;">
+      <button type="button" class="btn-primary" (click)="confirmReturn()"><i class="fas fa-check"></i> {{ t('confirmReturn') }}</button>
+      <button type="button" class="btn-secondary" (click)="closeModals()">{{ t('cancel') }}</button>
     </div>
   </div>
 </div>

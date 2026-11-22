@@ -157,3 +157,10 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- 1. Kuongeza column ya kufuatilia idadi iliyochukuliwa
+ALTER TABLE services ADD COLUMN taken_quantity INT DEFAULT 0 AFTER taken;
+
+-- 2. Kubadilisha aina ya column ya picha ili iweze kuhifadhi majina ya picha nyingi (JSON)
+ALTER TABLE services MODIFY COLUMN image_path LONGTEXT;
