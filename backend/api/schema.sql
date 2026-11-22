@@ -173,3 +173,4 @@ ALTER TABLE notifications ADD COLUMN type ENUM('system', 'message') DEFAULT 'mes
 -- Kuongeza tracking ya failed attempts na lockout
 ALTER TABLE users ADD COLUMN failed_attempts INT DEFAULT 0;
 ALTER TABLE users ADD COLUMN lockout_until DATETIME DEFAULT NULL;
+ALTER TABLE users ADD COLUMN profile_image VARCHAR(255) NULL DEFAULT NULL;
