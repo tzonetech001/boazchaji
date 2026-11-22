@@ -33,7 +33,7 @@
           <th>{{ t('qty') }}</th>
           <th>{{ t('status') }}</th>
           <th *ngIf="isAdmin">{{ t('agent') }}</th>
-          <th class="text-right">{{ t('actions') }}</th>
+          <th class="actions-col">{{ t('actions') }}</th>
         </tr>
       </thead>
       <tbody>
@@ -50,7 +50,7 @@
             </span>
           </td>
           <td *ngIf="isAdmin">{{ s.agent_name }}</td>
-          <td class="text-right">
+          <td class="actions-col">
             <button class="btn-icon" (click)="openView(s)" [title]="t('view')"><i class="fas fa-eye"></i></button>
             <button class="btn-icon" (click)="openStatusModal(s)" [title]="t('updateStatus')"><i class="fas fa-money-bill"></i></button>
             
@@ -58,8 +58,7 @@
               <i class="fas fa-hand-holding"></i> {{ t('takeDevice') }}
             </button>
             
-            <!-- Kitufe cha Kufuta: Kinazimwa kama kifaa kimeshaanza kuchukuliwa -->
-            <button class="btn-icon delete" (click)="deleteService(s.id!)" 
+            <button class="btn-icon delete" (click)="askDeleteService(s.id!)" 
                     [disabled]="($any(s).taken_quantity || 0) > 0"
                     [title]="t('delete')">
               <i class="fas fa-trash"></i>
@@ -90,32 +89,45 @@
     </div>
     
     <form [formGroup]="serviceForm" (ngSubmit)="onSubmitAdd()" class="modal-body">
+      
+      <!-- Agent Selection (Admin Only) -->
       <div class="form-group" *ngIf="isAdmin">
         <label>{{ t('selectAgent') }} <span style="color:red">*</span></label>
         <select formControlName="agent_id" class="form-control">
           <option value="">-- {{ t('selectAgent') }} --</option>
           <option *ngFor="let a of agents" [value]="a.id">{{ a.first_name }} {{ a.last_name }}</option>
         </select>
+        <small class="text-danger" *ngIf="!serviceForm.get('agent_id')?.value" style="font-size:0.75rem; margin-top:5px; display:block;">
+          {{ t('selectAgentFirst') }}
+        </small>
       </div>
 
       <div class="form-row">
         <div class="form-group relative">
           <label>{{ t('customerName') }} <span style="color:red">*</span></label>
-          <input type="text" formControlName="customer_name" class="form-control" placeholder="Anza kuandika..." autocomplete="off">
+          <!-- Input inakuwa disabled kama ni Admin na hajachagua Agent -->
+          <input type="text" formControlName="customer_name" class="form-control" placeholder="Anza kuandika..." autocomplete="off"
+                 [disabled]="isAdmin && !serviceForm.get('agent_id')?.value">
+          
           <div class="autocomplete-dropdown" *ngIf="showDropdown">
             <div class="dropdown-item" *ngFor="let c of searchResults" (click)="selectCustomer(c)">
               <strong>{{ c.name }}</strong> - {{ c.phone }}
             </div>
           </div>
-          <small class="add-new" *ngIf="!showDropdown && serviceForm.value.customer_name && !serviceForm.value.customer_id">
-            <i class="fas fa-info-circle"></i> Mteja mpya atahifadhiwa moja kwa moja
-          </small>
+          
+          <button type="button" class="btn-success" style="margin-top:5px; width:100%; justify-content:center;" 
+                  *ngIf="!showDropdown && serviceForm.value.customer_name && !serviceForm.value.customer_id && (!isAdmin || serviceForm.get('agent_id')?.value)"
+                  (click)="saveNewCustomerInline()">
+            <i class="fas fa-user-plus"></i> {{ t('saveNewCustomer') }}
+          </button>
         </div>
 
         <div class="form-group">
           <label>{{ t('customerPhone') }} <span style="color:red">*</span></label>
-          <!-- Namba imezuiwa kuchukua zaidi ya 10 -->
-          <input type="tel" formControlName="customer_phone" maxlength="10" class="form-control" placeholder="07XXXXXXXX">
+          <input type="tel" formControlName="customer_phone" maxlength="10" class="form-control" 
+                 placeholder="07XXXXXXXX" (input)="serviceForm.get('customer_phone')?.setValue($any($event.target).value.slice(0,10))"
+                 [disabled]="isAdmin && !serviceForm.get('agent_id')?.value">
+          <small class="text-muted" style="font-size:0.75rem;">Lazima ianze na 06 au 07 (Tarakimu 10)</small>
         </div>
       </div>
 
@@ -131,7 +143,7 @@
               <option value="">-- Chagua --</option>
               <option *ngFor="let d of deviceTypes" [value]="d.id">{{ d.name }}</option>
             </select>
-            <button type="button" class="btn-primary" (click)="openDeviceTypeModal()" title="Ongeza Aina"><i class="fas fa-plus"></i></button>
+            <button type="button" class="btn-primary" (click)="openDeviceTypeModal()" [title]="t('manageDeviceTypes')"><i class="fas fa-cog"></i></button>
           </div>
         </div>
       </div>
@@ -174,7 +186,6 @@
 
       <div class="modal-footer" style="padding:0; border:none; margin-top:10px;">
         <button type="button" class="btn-secondary" (click)="closeModals()">{{ t('cancel') }}</button>
-        <!-- Kitufe kiko enabled kila wakati ili kukidhi mahitaji ya mteja mpya -->
         <button type="submit" class="btn-primary" [disabled]="isSubmitting">
           <i class="fas fa-save" *ngIf="!isSubmitting"></i> 
           <i class="fas fa-spinner fa-spin" *ngIf="isSubmitting"></i> {{ t('save') }}
@@ -185,20 +196,29 @@
 </div>
 
 <!-- ========================================== -->
-<!-- MODAL: DEVICE TYPE -->
+<!-- MODAL: MANAGE DEVICE TYPES -->
 <!-- ========================================== -->
 <div class="modal-overlay" *ngIf="showDeviceTypeModal" (click)="closeModals()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h3><i class="fas fa-plus-circle"></i> {{ t('addDeviceType') }}</h3>
+      <h3><i class="fas fa-cog"></i> {{ t('manageDeviceTypes') }}</h3>
       <button class="close-btn" (click)="closeModals()"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body">
-      <input type="text" [(ngModel)]="newDeviceTypeName" class="form-control" placeholder="Mfano: TV, Redio, Speaker...">
+      <div style="display:flex; gap:10px; margin-bottom:15px;">
+        <input type="text" [(ngModel)]="newDeviceTypeName" class="form-control" placeholder="Mfano: TV, Redio, Speaker...">
+        <button class="btn-primary" (click)="saveDeviceType()"><i class="fas fa-plus"></i></button>
+      </div>
+      
+      <ul class="device-type-list">
+        <li *ngFor="let d of deviceTypes">
+          <span>{{ d.name }}</span>
+          <button class="btn-icon delete" (click)="askDeleteDeviceType(d.id)" title="Futa"><i class="fas fa-trash"></i></button>
+        </li>
+      </ul>
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" (click)="closeModals()">{{ t('cancel') }}</button>
-      <button class="btn-primary" (click)="saveDeviceType()">{{ t('saveDeviceType') }}</button>
+      <button class="btn-secondary" (click)="closeModals()">{{ t('close') }}</button>
     </div>
   </div>
 </div>
@@ -219,7 +239,6 @@
       <div class="detail-row"><strong>{{ t('qty') }}:</strong> {{ selectedService?.quantity }} (Zimechukuliwa: {{ $any(selectedService)?.taken_quantity || 0 }})</div>
       <div class="detail-row"><strong>{{ t('total') }}:</strong> TZS {{ (selectedService!.amount * selectedService!.quantity) | number }}</div>
       
-      <!-- View Images -->
       <div class="detail-row" style="flex-direction:column; align-items:flex-start;" *ngIf="$any(selectedService)?.images?.length">
         <strong>{{ t('image') }}:</strong>
         <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">
@@ -266,7 +285,6 @@
       <p>{{ t('returnMsg') }}</p>
       <p><strong>{{ selectedService?.customer_name }}</strong> (Total: {{ selectedService?.quantity }}, Zilizobaki: {{ (selectedService?.quantity || 0) - ($any(selectedService)?.taken_quantity || 0) }})</p>
       
-      <!-- Ongeza kikomo cha idadi -->
       <input type="number" [(ngModel)]="returnQuantity" min="1" 
              [max]="(selectedService?.quantity || 1) - ($any(selectedService)?.taken_quantity || 0)" 
              class="form-control" style="text-align:center; font-size:1.2rem; margin:15px 0;">
@@ -274,6 +292,24 @@
     <div class="modal-footer" style="justify-content:center;">
       <button type="button" class="btn-primary" (click)="confirmReturn()"><i class="fas fa-check"></i> {{ t('confirmReturn') }}</button>
       <button type="button" class="btn-secondary" (click)="closeModals()">{{ t('cancel') }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: CONFIRM DELETE (Custom Popup) -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showConfirmModal" (click)="closeModals()">
+  <div class="modal-content confirm-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header warning-header">
+      <h3><i class="fas fa-exclamation-triangle"></i> {{ t('confirmDeleteTitle') }}</h3>
+    </div>
+    <div class="modal-body confirm-body">
+      <p>{{ confirmMessage }}</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="closeModals()">{{ t('noCancel') }}</button>
+      <button type="button" class="btn-danger" (click)="executeDelete()">{{ t('yesDelete') }}</button>
     </div>
   </div>
 </div>

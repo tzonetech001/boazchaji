@@ -1,77 +1,193 @@
 <div class="notifications-container">
-  
+
+  <!-- Toast -->
+  <div class="alert-overlay" *ngIf="message.text">
+    <div class="alert-box" [ngClass]="message.type">
+      <i class="fas" [ngClass]="message.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
+      {{ message.text }}
+    </div>
+  </div>
+
+  <!-- Header -->
   <div class="page-header">
     <div>
-      <h2><i class="fas fa-bell"></i> Taarifa (Notifications)</h2>
-      <p>Simamia taarifa na ujumbe wa mfumo.</p>
+      <h2><i class="fas fa-bell"></i> {{ t('title') }}</h2>
+      <p>{{ t('subtitle') }}</p>
     </div>
-    <button *ngIf="isAdmin" class="btn-danger" (click)="clearAll()">
-      <i class="fas fa-trash"></i> Futa Zote
+    <button *ngIf="isAdmin" class="btn-primary" (click)="openSendModal()">
+      <i class="fas fa-paper-plane"></i> {{ t('newNotifBtn') }}
     </button>
   </div>
 
-  <!-- Admin: Send Notification Form -->
-  <div class="form-card" *ngIf="isAdmin" [formGroup]="notifForm" (ngSubmit)="sendNotif()">
-    <h3><i class="fas fa-paper-plane"></i> Tuma Ujumbe Mpya</h3>
-    
-    <div class="form-row">
-      <div class="form-group">
-        <label>Mpokeaji</label>
-        <select formControlName="receiver_id" class="form-control">
-          <option value="">Kwa Wote (Broadcast)</option>
-          <option *ngFor="let a of agents" [value]="a.id">
-            {{ a.first_name }} {{ a.last_name }}
-          </option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Kichwa cha Habari</label>
-        <input type="text" formControlName="title" placeholder="Mfano: Kumbusho la Kazi" class="form-control">
-      </div>
+  <!-- Toolbar (Tabs + Bulk Delete) -->
+  <div class="toolbar">
+    <div class="tabs">
+      <button [class.active]="activeTab === 'all'" (click)="setTab('all')">{{ t('tabAll') }}</button>
+      <button [class.active]="activeTab === 'message'" (click)="setTab('message')">{{ t('tabMessages') }}</button>
+      <button [class.active]="activeTab === 'system'" (click)="setTab('system')">{{ t('tabSystem') }}</button>
     </div>
-
-    <div class="form-group">
-      <label>Ujumbe</label>
-      <textarea formControlName="message" placeholder="Andika ujumbe wako hapa..." class="form-control" rows="3"></textarea>
-    </div>
-
-    <div class="form-actions">
-      <button type="submit" class="btn-primary" [disabled]="notifForm.invalid">
-        <i class="fas fa-paper-plane"></i> Tuma Ujumbe
-      </button>
-    </div>
+    <button *ngIf="selectedIds.size > 0" class="btn-danger" (click)="bulkDelete()">
+      <i class="fas fa-trash"></i> {{ t('deleteSelected') }} ({{ selectedIds.size }})
+    </button>
   </div>
 
-  <!-- Notifications List -->
+  <!-- List -->
   <div class="list-card">
-    <div class="empty-state" *ngIf="notifications.length === 0">
+    <div class="empty-state" *ngIf="filteredNotifs.length === 0">
       <i class="fas fa-bell-slash"></i>
-      <p>Hakuna taarifa yoyote kwa sasa.</p>
+      <p>{{ t('noNotifications') }}</p>
     </div>
 
-    <div class="notif-list" *ngIf="notifications.length > 0">
-      <div class="notif-item" *ngFor="let n of notifications" 
-           [class.unread]="!n.is_read" 
-           (click)="markRead(n)">
+    <!-- Table Header for Checkboxes -->
+    <div class="list-header-bar" *ngIf="paginatedNotifs.length > 0 && isAdmin">
+      <label class="checkbox-label">
+        <input type="checkbox" [checked]="isAllSelected" (change)="toggleSelectAll($event)">
+        <span>Select All</span>
+      </label>
+    </div>
+
+    <div class="notif-list" *ngIf="paginatedNotifs.length > 0">
+      <div class="notif-item" *ngFor="let n of paginatedNotifs" 
+           [class.unread]="!n.is_read">
         
-        <div class="notif-icon" [ngClass]="n.is_read ? 'read' : 'unread'">
-          <i class="fas fa-envelope" *ngIf="!n.is_read"></i>
-          <i class="fas fa-envelope-open" *ngIf="n.is_read"></i>
+        <!-- Checkbox (Admin Only) -->
+        <div class="notif-checkbox" *ngIf="isAdmin">
+          <input type="checkbox" [checked]="selectedIds.has(n.id)" (change)="toggleSelect(n.id)">
         </div>
 
-        <div class="notif-content">
+        <!-- Icon (Clickable to view) -->
+        <div class="notif-icon" [ngClass]="n.is_read ? 'read' : 'unread'" (click)="viewNotification(n)">
+          <i class="fas" [ngClass]="n.is_read ? 'fa-envelope-open' : 'fa-envelope'"></i>
+        </div>
+
+        <!-- Content (Clickable to view) -->
+        <div class="notif-content" (click)="viewNotification(n)">
           <div class="notif-header">
             <h4>{{ n.title }}</h4>
             <small><i class="fas fa-clock"></i> {{ n.created_at | date:'short' }}</small>
           </div>
-          <p>{{ n.message }}</p>
+          <p>{{ n.message | slice:0:100 }}{{ n.message.length > 100 ? '...' : '' }}</p>
+          
           <div class="notif-footer">
-            <small><i class="fas fa-user"></i> Kutoka: {{ n.sender_name || 'Mfumo' }}</small>
-            <span class="unread-dot" *ngIf="!n.is_read">Mpya</span>
+            <small>
+              <i class="fas" [ngClass]="n.type === 'system' ? 'fa-robot' : 'fa-user'"></i> 
+              {{ t('from') }}: {{ n.sender_name || t('system') }}
+            </small>
+            <span class="unread-dot" *ngIf="!n.is_read">{{ t('newLabel') }}</span>
           </div>
+        </div>
+
+        <!-- View Icon (Action Button) -->
+        <div class="notif-actions">
+          <button class="btn-icon view" (click)="viewNotification(n)" title="View Details">
+            <i class="fas fa-eye"></i>
+          </button>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">{{ t('prev') }}</button>
+    <span>{{ t('page') }} {{ currentPage }} / {{ totalPages }}</span>
+    <button [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">{{ t('next') }}</button>
+  </div>
+
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: SEND NOTIFICATION (Admin Only) -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showSendModal" (click)="showSendModal = false">
+  <div class="modal-content large-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-paper-plane"></i> {{ t('sendMessage') }}</h3>
+      <button class="close-btn" (click)="showSendModal = false"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <form [formGroup]="notifForm" (ngSubmit)="sendNotification()" class="modal-body">
+      
+      <div class="form-group">
+        <label>{{ t('recipients') }} <span style="color:red">*</span></label>
+        <small class="text-muted" style="display:block; margin-bottom:5px;">{{ t('allUsers') }}</small>
+        
+        <div class="agents-select-box">
+          <label *ngFor="let a of agents" class="agent-checkbox">
+            <input type="checkbox" 
+                   [checked]="selectedAgents.includes(a.id)" 
+                   (change)="toggleAgentSelection(a.id)">
+            {{ a.first_name }} {{ a.last_name }}
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>{{ t('subject') }} <span style="color:red">*</span></label>
+        <input type="text" formControlName="title" class="form-control" placeholder="Mfano: Kumbusho la Kazi">
+      </div>
+
+      <div class="form-group">
+        <label>{{ t('messageContent') }} <span style="color:red">*</span></label>
+        <textarea formControlName="message" class="form-control" rows="3" placeholder="Andika ujumbe wako hapa..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>{{ t('attachment') }}</label>
+        <input type="file" (change)="onFileSelected($event)" accept="image/*,application/pdf" class="form-control">
+      </div>
+
+      <div class="modal-footer" style="padding:0; border:none; margin-top:15px;">
+        <button type="button" class="btn-secondary" (click)="showSendModal = false">{{ t('cancel') }}</button>
+        <button type="submit" class="btn-primary" [disabled]="notifForm.invalid || isSubmitting">
+          <i class="fas fa-spinner fa-spin" *ngIf="isSubmitting"></i>
+          <i class="fas fa-paper-plane" *ngIf="!isSubmitting"></i> {{ t('sendBtn') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: VIEW NOTIFICATION DETAILS -->
+<!-- ========================================== -->
+<div class="modal-overlay" *ngIf="showViewModal" (click)="showViewModal = false">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fas fa-info-circle"></i> {{ t('viewDetails') }}</h3>
+      <button class="close-btn" (click)="showViewModal = false"><i class="fas fa-times"></i></button>
+    </div>
+    
+    <div class="modal-body" *ngIf="selectedNotification">
+      <div class="detail-row">
+        <strong>{{ t('subject') }}:</strong>
+        <span>{{ selectedNotification.title }}</span>
+      </div>
+      <div class="detail-row">
+        <strong>{{ t('from') }}:</strong>
+        <span>{{ selectedNotification.sender_name || t('system') }}</span>
+      </div>
+      <div class="detail-row">
+        <strong>Tarehe:</strong>
+        <span>{{ selectedNotification.created_at | date:'medium' }}</span>
+      </div>
+      
+      <div class="detail-message">
+        <strong>{{ t('messageContent') }}:</strong>
+        <p>{{ selectedNotification.message }}</p>
+      </div>
+
+      <!-- Attachment -->
+      <div *ngIf="selectedNotification.attachment_path" class="detail-row" style="margin-top: 15px;">
+        <strong>{{ t('attachment') }}:</strong>
+        <a [href]="getAttachmentUrl(selectedNotification.attachment_path)" target="_blank" class="attachment-link">
+          <i class="fas fa-paperclip"></i> {{ t('viewAttachment') }}
+        </a>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" (click)="showViewModal = false">{{ t('close') }}</button>
+    </div>
+  </div>
 </div>

@@ -18,7 +18,7 @@ import { Customer } from '../../../core/models/customer.model';
   styleUrls: ['./service-list.component.css']
 })
 export class ServiceListComponent implements OnInit {
-  private api = inject(ApiService);
+  api = inject(ApiService);
   private auth = inject(AuthService);
   private fb = inject(FormBuilder);
   langService = inject(LanguageService);
@@ -38,7 +38,13 @@ export class ServiceListComponent implements OnInit {
   showStatusModal = false;
   showReturnModal = false;
   showDeviceTypeModal = false;
+  showConfirmModal = false;
   selectedService: Service | null = null;
+
+  // Confirm Modal Data
+  confirmMessage = '';
+  confirmActionType: 'service' | 'device_type' = 'service';
+  targetIdToDelete: number | null = null;
 
   // Forms & Data
   serviceForm: FormGroup;
@@ -73,9 +79,19 @@ export class ServiceListComponent implements OnInit {
       yesPaid: 'Ndio, Amelipa', noUnpaid: 'Hapana, Hajalipa',
       returnDevice: 'Chukua Kifaa', returnMsg: 'Weka idadi ya vifaa anavyochukua sasa:',
       confirmReturn: 'Chukua', addDeviceType: 'Ongeza Aina ya Kifaa', saveDeviceType: 'Hifadhi',
+      manageDeviceTypes: 'Simamia Aina za Vifaa',
       addedOk: 'Huduma imehifadhiwa!', statusUpdated: 'Hali imebadilishwa!',
       returnedOk: 'Kifaa kimechukuliwa!', errGeneral: 'Hitilafu imetokea.', 
-      deletedOk: 'Imefutwa!', deleteBlocked: 'Hauwezi kufuta, kifaa kimeshaanza kuchukuliwa!'
+      deletedOk: 'Imefutwa!', deleteBlocked: 'Hauwezi kufuta, kifaa kimeshaanza kuchukuliwa!',
+      confirmDeleteTitle: 'Tafadhali Thibitisha',
+      confirmDeleteService: 'Una uhakika unataka kufuta huduma hii?',
+      confirmDeleteDeviceType: 'Una uhakika unataka kufuta aina hii ya kifaa?',
+      yesDelete: 'Ndio, Futa', noCancel: 'Hapana, Ghairi',
+      saveNewCustomer: 'Sajili Mteja Mpya',
+      errValidation: 'Tafadhali jaza sehemu zote muhimu kwa usahihi (Chagua aina ya kifaa, hakikisha namba ina tarakimu 10).',
+      errNoCustomer: 'Tafadhali chagua mteja au bofya "Sajili Mteja Mpya" kabla ya kuhifadhi.',
+      selectAgentFirst: 'Tafadhali chagua Agent kwanza ili kuweza kutafuta au kuandika jina la mteja.',
+      customerAddedOk: 'Mteja amesajiliwa!'
     },
     en: {
       title: 'Pending Services', subtitle: 'These are jobs not yet paid or taken.',
@@ -92,9 +108,19 @@ export class ServiceListComponent implements OnInit {
       yesPaid: 'Yes, Paid', noUnpaid: 'No, Unpaid',
       returnDevice: 'Take Device', returnMsg: 'Enter quantity being taken now:',
       confirmReturn: 'Take', addDeviceType: 'Add Device Type', saveDeviceType: 'Save',
+      manageDeviceTypes: 'Manage Device Types',
       addedOk: 'Service saved!', statusUpdated: 'Status updated!',
       returnedOk: 'Device taken!', errGeneral: 'An error occurred.', 
-      deletedOk: 'Deleted!', deleteBlocked: 'Cannot delete, device partly/fully taken!'
+      deletedOk: 'Deleted!', deleteBlocked: 'Cannot delete, device partly/fully taken!',
+      confirmDeleteTitle: 'Please Confirm',
+      confirmDeleteService: 'Are you sure you want to delete this service?',
+      confirmDeleteDeviceType: 'Are you sure you want to delete this device type?',
+      yesDelete: 'Yes, Delete', noCancel: 'No, Cancel',
+      saveNewCustomer: 'Save New Customer',
+      errValidation: 'Please fill all required fields correctly (Select device type, ensure phone is 10 digits).',
+      errNoCustomer: 'Please select a customer or click "Save New Customer" before saving.',
+      selectAgentFirst: 'Please select an Agent first to search or enter a customer name.',
+      customerAddedOk: 'Customer registered!'
     }
   };
 
@@ -116,15 +142,40 @@ export class ServiceListComponent implements OnInit {
     const user = this.auth.getCurrentUser();
     this.isAdmin = user?.role === 'admin';
     if (this.isAdmin) this.api.getAgents().subscribe(res => this.agents = res);
-    this.api.getDeviceTypes().subscribe(res => this.deviceTypes = res);
+    this.loadDeviceTypes();
 
+    // Mabadiliko ya utafutaji wa Mteja
     this.serviceForm.get('customer_name')?.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged(),
-        switchMap(value => (typeof value === 'string' && value.length > 1) ? this.api.searchCustomers(value) : of([]))
+      .pipe(
+        debounceTime(300), 
+        distinctUntilChanged(),
+        switchMap(value => {
+          const query = typeof value === 'string' ? value : '';
+          if (query.length > 1) {
+            // Kama ni admin, chukua ID ya agent aliyechaguliwa. Kama ni agent, chukua ID yake.
+            const searchAgentId = this.isAdmin 
+              ? this.serviceForm.get('agent_id')?.value 
+              : user?.id;
+            
+            if (searchAgentId) {
+              return this.api.searchCustomers(query, searchAgentId);
+            }
+          }
+          return of([]);
+        })
       ).subscribe(results => {
         this.searchResults = results;
         this.showDropdown = results.length > 0;
       });
+
+    // Kama Admin anabadilisha Agent, futa mteja aliyechaguliwa awali ili asichanganye
+    if (this.isAdmin) {
+      this.serviceForm.get('agent_id')?.valueChanges.subscribe(() => {
+        this.serviceForm.patchValue({ customer_id: null, customer_name: '', customer_phone: '' });
+        this.searchResults = [];
+        this.showDropdown = false;
+      });
+    }
 
     this.loadData();
   }
@@ -141,6 +192,10 @@ export class ServiceListComponent implements OnInit {
       next: (data) => { this.services = data; this.applyFilter(); this.isLoading = false; },
       error: () => this.isLoading = false
     });
+  }
+
+  loadDeviceTypes() {
+    this.api.getDeviceTypes().subscribe(res => this.deviceTypes = res);
   }
 
   applyFilter() {
@@ -172,8 +227,30 @@ export class ServiceListComponent implements OnInit {
     this.showAddModal = true;
   }
 
-  selectCustomer(c: Customer) { this.serviceForm.patchValue({ customer_id: c.id, customer_name: c.name, customer_phone: c.phone }); this.showDropdown = false; }
+  selectCustomer(c: Customer) { 
+    this.serviceForm.patchValue({ customer_id: c.id, customer_name: c.name, customer_phone: c.phone }); 
+    this.showDropdown = false; 
+  }
 
+  saveNewCustomerInline() {
+    const name = this.serviceForm.get('customer_name')?.value;
+    const phone = this.serviceForm.get('customer_phone')?.value;
+    const agentId = this.isAdmin ? this.serviceForm.value.agent_id : this.auth.getCurrentUser()?.id;
+
+    if (!name || !phone) return this.showMessage('Weka jina na namba sahihi kwanza', 'error');
+    if (!agentId) return this.showMessage(this.t('selectAgentFirst'), 'error');
+
+    this.api.addCustomer({ name, phone, created_by_agent_id: agentId }).subscribe({
+      next: (res) => {
+        this.serviceForm.patchValue({ customer_id: res.id });
+        this.showDropdown = false;
+        this.showMessage(this.t('customerAddedOk'), 'success');
+      },
+      error: (err: any) => this.showMessage(err.error?.message || 'Hitilafu imetokea', 'error')
+    });
+  }
+
+  // --- DEVICE TYPE MANAGEMENT ---
   openDeviceTypeModal() {
     this.newDeviceTypeName = '';
     this.showDeviceTypeModal = true;
@@ -181,13 +258,25 @@ export class ServiceListComponent implements OnInit {
 
   saveDeviceType() {
     if (!this.newDeviceTypeName.trim()) return;
-    this.api.addDeviceType(this.newDeviceTypeName).subscribe(res => {
-      this.deviceTypes.push({ id: res.id, name: this.newDeviceTypeName });
-      this.serviceForm.patchValue({ device_type_id: res.id });
-      this.showDeviceTypeModal = false;
+    this.api.addDeviceType(this.newDeviceTypeName).subscribe({
+      next: (res) => {
+        this.loadDeviceTypes();
+        this.serviceForm.patchValue({ device_type_id: res.id });
+        this.newDeviceTypeName = '';
+        this.showMessage('Aina imeongezwa!', 'success');
+      },
+      error: (err: any) => this.showMessage(err.error?.message || 'Hitilafu imetokea', 'error')
     });
   }
 
+  askDeleteDeviceType(id: number) {
+    this.confirmActionType = 'device_type';
+    this.targetIdToDelete = id;
+    this.confirmMessage = this.t('confirmDeleteDeviceType');
+    this.showConfirmModal = true;
+  }
+
+  // --- MULTIPLE IMAGES ---
   onFilesSelected(event: any) {
     const files = event.target.files;
     if (files) {
@@ -205,26 +294,20 @@ export class ServiceListComponent implements OnInit {
     this.imagePreviews.splice(index, 1);
   }
 
-  // SUBMIT ADD SERVICE
+  // --- SUBMIT SERVICE ---
   onSubmitAdd() {
-    if (this.serviceForm.invalid) return;
-    this.isSubmitting = true;
-
-    // Kama ni mteja mpya (hana ID), mhifadhi kwanza
-    if (!this.serviceForm.value.customer_id && this.serviceForm.value.customer_name && this.serviceForm.value.customer_phone) {
-      this.api.addCustomer({ name: this.serviceForm.value.customer_name, phone: this.serviceForm.value.customer_phone }).subscribe({
-        next: (res) => {
-          this.serviceForm.patchValue({ customer_id: res.id });
-          this.proceedToSaveService();
-        },
-        error: () => { this.showMessage('Imeshindwa kuongeza mteja mpya', 'error'); this.isSubmitting = false; }
-      });
-    } else if (this.serviceForm.value.customer_id) {
-      this.proceedToSaveService();
-    } else {
-      this.showMessage('Chagua mteja au jaza jina na namba', 'error');
-      this.isSubmitting = false;
+    if (this.serviceForm.invalid) {
+      this.showMessage(this.t('errValidation'), 'error');
+      return;
     }
+
+    if (!this.serviceForm.value.customer_id) {
+      this.showMessage(this.t('errNoCustomer'), 'error');
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.proceedToSaveService();
   }
 
   proceedToSaveService() {
@@ -236,8 +319,16 @@ export class ServiceListComponent implements OnInit {
     this.selectedFiles.forEach(file => formData.append('images[]', file));
 
     this.api.addService(formData).subscribe({
-      next: () => { this.showMessage(this.t('addedOk'), 'success'); this.loadData(); this.closeModals(); },
-      error: (err) => { this.showMessage(err.error?.message || this.t('errGeneral'), 'error'); this.isSubmitting = false; }
+      next: () => { 
+        this.showMessage(this.t('addedOk'), 'success'); 
+        this.loadData(); 
+        this.closeModals(); 
+        this.isSubmitting = false;
+      },
+      error: (err: any) => { 
+        this.showMessage(err.error?.message || this.t('errGeneral'), 'error'); 
+        this.isSubmitting = false; 
+      }
     });
   }
 
@@ -263,7 +354,7 @@ export class ServiceListComponent implements OnInit {
     const maxQty = this.selectedService.quantity - takenQty;
     
     if (this.returnQuantity < 1 || this.returnQuantity > maxQty) {
-      return alert(`Weka idadi kati ya 1 na ${maxQty}`);
+      return this.showMessage(`Weka idadi kati ya 1 na ${maxQty}`, 'error');
     }
 
     this.api.updateServiceAction({ id: this.selectedService.id, action: 'return_quantity', return_qty: this.returnQuantity }).subscribe(() => {
@@ -271,21 +362,53 @@ export class ServiceListComponent implements OnInit {
     });
   }
 
-  deleteService(id: number) {
-    if (!confirm('Una uhakika unataka kufuta huduma hii?')) return;
-    this.api.deleteService(id).subscribe({
-      next: () => { this.showMessage(this.t('deletedOk'), 'success'); this.loadData(); },
-      error: (err) => this.showMessage(err.error?.message || this.t('deleteBlocked'), 'error')
-    });
+  // --- DELETE LOGIC ---
+  askDeleteService(id: number) {
+    this.confirmActionType = 'service';
+    this.targetIdToDelete = id;
+    this.confirmMessage = this.t('confirmDeleteService');
+    this.showConfirmModal = true;
+  }
+
+  executeDelete() {
+    if (!this.targetIdToDelete) return;
+
+    if (this.confirmActionType === 'service') {
+      this.api.deleteService(this.targetIdToDelete).subscribe({
+        next: () => { 
+          this.showMessage(this.t('deletedOk'), 'success'); 
+          this.loadData(); 
+          this.closeModals(); 
+        },
+        error: (err: any) => { 
+          this.showMessage(err.error?.message || this.t('deleteBlocked'), 'error'); 
+          this.closeModals(); 
+        }
+      });
+    } else if (this.confirmActionType === 'device_type') {
+      this.api.deleteDeviceType(this.targetIdToDelete).subscribe({
+        next: () => { 
+          this.showMessage('Aina ya kifaa imefutwa!', 'success'); 
+          this.loadDeviceTypes(); 
+          this.closeModals(); 
+        },
+        error: (err: any) => { 
+          this.showMessage(err.error?.message || 'Imeshindwa kufuta', 'error'); 
+          this.closeModals(); 
+        }
+      });
+    }
   }
 
   closeModals() { 
     this.showAddModal = false; this.showViewModal = false; this.showStatusModal = false; 
-    this.showReturnModal = false; this.showDeviceTypeModal = false; this.isSubmitting = false;
+    this.showReturnModal = false; this.showDeviceTypeModal = false; this.showConfirmModal = false; 
+    this.isSubmitting = false;
+    this.targetIdToDelete = null;
   }
 
   showMessage(text: string, type: 'success' | 'error') {
     this.message = { text, type };
-    setTimeout(() => this.message = { text: '', type: 'success' }, 2500);
+    setTimeout(() => this.message = { text: '', type: 'success' }, 3000);
   }
 }

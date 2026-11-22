@@ -59,6 +59,8 @@
           <th>#</th>
           <th>{{ t('name') }}</th>
           <th>{{ t('phone') }}</th>
+          <!-- Onyesha Agent kama ni Admin -->
+          <th *ngIf="isAdmin">{{ t('agent') }}</th>
           <th class="actions-col">{{ t('actions') }}</th>
         </tr>
       </thead>
@@ -72,6 +74,15 @@
             </div>
           </td>
           <td>{{ c.phone || '—' }}</td>
+          
+          <!-- Onyesha jina la Agent kama ni Admin -->
+          <td *ngIf="isAdmin">
+            <span *ngIf="c.agent_first_name" class="badge-agent">
+              {{ c.agent_first_name }} {{ c.agent_last_name }}
+            </span>
+            <span *ngIf="!c.agent_first_name" class="text-muted">—</span>
+          </td>
+
           <td class="actions-col">
             <button class="btn-icon edit" (click)="openEditModal(c)" [title]="t('edit')">
               <i class="fas fa-edit"></i>
@@ -82,13 +93,13 @@
           </td>
         </tr>
         <tr *ngIf="filtered.length === 0 && !loading">
-          <td colspan="4" class="empty-state">
+          <td colspan="5" class="empty-state">
             <i class="fas fa-inbox"></i>
             <p>{{ t('noData') }}</p>
           </td>
         </tr>
         <tr *ngIf="loading">
-          <td colspan="4" class="empty-state">
+          <td colspan="5" class="empty-state">
             <i class="fas fa-spinner fa-spin"></i>
             <p>Inapakia...</p>
           </td>
@@ -123,10 +134,21 @@
 
       <div class="form-group">
         <label>{{ t('phone') }}</label>
-        <input type="tel" formControlName="phone" class="form-control" placeholder="07XXXXXXXX" />
+        <input type="tel" formControlName="phone" class="form-control" placeholder="07XXXXXXXX" maxlength="10"/>
         <small class="error-text" *ngIf="customerForm.get('phone')?.invalid && customerForm.get('phone')?.touched">
           {{ t('phoneInvalid') }}
         </small>
+      </div>
+
+      <!-- Dropdown ya Kuchagua Agent (Admin Only) -->
+      <div class="form-group" *ngIf="isAdmin">
+        <label>{{ t('selectAgent') }}</label>
+        <select formControlName="created_by_agent_id" class="form-control">
+          <option [ngValue]="null">-- {{ t('selectAgent') }} --</option>
+          <option *ngFor="let a of agents" [value]="a.id">
+            {{ a.first_name }} {{ a.last_name }}
+          </option>
+        </select>
       </div>
       
       <div class="modal-footer">

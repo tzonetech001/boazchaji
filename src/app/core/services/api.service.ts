@@ -9,7 +9,6 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class ApiService {
-  // Base URL inatoka kwenye environment
   private get apiUrl(): string {
     return `${environment.baseUrl}/api`;
   }
@@ -19,8 +18,12 @@ export class ApiService {
   // ==========================================
   // CUSTOMERS
   // ==========================================
-  searchCustomers(query: string): Observable<Customer[]> {
-    return this.http.get<Customer[]>(`${this.apiUrl}/customers.php?search=${query}`);
+  searchCustomers(query: string, agentId?: number): Observable<Customer[]> {
+    let params = new HttpParams().set('search', query).set('role', agentId ? 'agent' : 'admin');
+    if (agentId) {
+      params = params.set('agent_id', agentId.toString());
+    }
+    return this.http.get<Customer[]>(`${this.apiUrl}/customers.php`, { params });
   }
 
   addCustomer(customer: any): Observable<any> {
@@ -47,12 +50,10 @@ export class ApiService {
   }
 
   updateServiceAction(data: any): Observable<any> {
-    // Inatumika kwa kubadilisha status (paid/pending) au kuchukua kifaa (taken)
     return this.http.put(`${this.apiUrl}/services.php`, data);
   }
 
   markAsPaid(serviceId: number): Observable<any> {
-    // Njia ya zamani, tumia updateServiceAction kwa sasa
     return this.http.put(`${this.apiUrl}/services.php`, { id: serviceId, action: 'update_status', status: 'paid' });
   }
 
@@ -74,6 +75,10 @@ export class ApiService {
 
   addDeviceType(name: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/device_types.php`, { name });
+  }
+
+  deleteDeviceType(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/device_types.php?id=${id}`);
   }
 
   // ==========================================

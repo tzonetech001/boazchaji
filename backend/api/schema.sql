@@ -164,3 +164,8 @@ ALTER TABLE services ADD COLUMN taken_quantity INT DEFAULT 0 AFTER taken;
 
 -- 2. Kubadilisha aina ya column ya picha ili iweze kuhifadhi majina ya picha nyingi (JSON)
 ALTER TABLE services MODIFY COLUMN image_path LONGTEXT;
+
+-- 1. Kuongeza column ya attachment (kwa ajili ya PDF au Picha)
+ALTER TABLE notifications ADD COLUMN attachment_path VARCHAR(255) DEFAULT NULL;
+-- 2. Kuongeza column ya type (kutofautisha 'system' na 'message')
+ALTER TABLE notifications ADD COLUMN type ENUM('system', 'message') DEFAULT 'message';

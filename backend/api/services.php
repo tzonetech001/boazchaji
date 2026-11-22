@@ -46,13 +46,46 @@ if ($method === 'POST') {
             ':image_path' => $image_path, ':status' => $status
         ]);
         
-        $agentName = $conn->query("SELECT first_name, last_name FROM users WHERE id = $agent_id")->fetch(PDO::FETCH_ASSOC);
-        $agentName = $agentName ? $agentName['first_name'] . ' ' . $agentName['last_name'] : 'Agent';
-        $conn->query("INSERT INTO notifications (sender_id, title, message) VALUES ($agent_id, 'Huduma Mpya', 'Agent $agentName ameongeza huduma ya $device_name')");
+        // =====================================================
+        // NOTIFICATION LOGIC (SYSTEM ALERT)
+        // =====================================================
+        
+        // 1. Pata jina la Agent
+        $agentQuery = $conn->prepare("SELECT first_name, last_name FROM users WHERE id = :id");
+        $agentQuery->execute([':id' => $agent_id]);
+        $agentData = $agentQuery->fetch(PDO::FETCH_ASSOC);
+        $agentName = $agentData ? $agentData['first_name'] . ' ' . $agentData['last_name'] : 'Agent';
+
+        $notifTitle = 'Huduma Mpya';
+        
+        // 2. Tuma kwa Agent Husika
+        $msgAgent = "Huduma mpya ya $device_name imeongezwa kwenye mfumo.";
+        $stmtNotif = $conn->prepare("INSERT INTO notifications (sender_id, receiver_id, title, message, type) VALUES (:sender, :receiver, :title, :msg, 'system')");
+        $stmtNotif->execute([
+            ':sender' => $agent_id,
+            ':receiver' => $agent_id,
+            ':title' => $notifTitle,
+            ':msg' => $msgAgent
+        ]);
+
+        // 3. Tuma kwa Admin wote
+        $msgAdmin = "Agent $agentName ameongeza huduma mpya ya $device_name.";
+        $stmtAdmins = $conn->query("SELECT id FROM users WHERE role = 'admin'");
+        $admins = $stmtAdmins->fetchAll(PDO::FETCH_ASSOC);
+        
+        foreach ($admins as $admin) {
+            $stmtNotif->execute([
+                ':sender' => $agent_id,
+                ':receiver' => $admin['id'],
+                ':title' => $notifTitle,
+                ':msg' => $msgAdmin
+            ]);
+        }
 
         echo json_encode(["message" => "Huduma imehifadhiwa"]);
     } catch(PDOException $e) {
-        http_response_code(500); echo json_encode(["message" => "Hitilafu: " . $e->getMessage()]);
+        http_response_code(500); 
+        echo json_encode(["message" => "Hitilafu: " . $e->getMessage()]);
     }
 } 
 elseif ($method === 'GET') {

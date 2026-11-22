@@ -8,8 +8,8 @@
 .list-header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; }
 
 /* Buttons */
-.btn-primary, .btn-secondary, .btn-success {
-  padding: 10px 18px; border-radius: 4px; /* 4px Radius */
+.btn-primary, .btn-secondary, .btn-success, .btn-danger {
+  padding: 10px 18px; border-radius: 4px;
   font-weight: 600; font-size: 0.9rem; cursor: pointer;
   display: inline-flex; align-items: center; gap: 8px;
   border: none; transition: all 0.2s;
@@ -17,10 +17,10 @@
 .btn-primary { background: var(--primary-color); color: white; }
 .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-
 .btn-success { background: #10b981; color: white; }
 .btn-success:hover { background: #059669; }
-
+.btn-danger { background: #ef4444; color: white; }
+.btn-danger:hover { background: #dc2626; }
 .btn-secondary {
   background: var(--bg-secondary); color: var(--text-color);
   border: 1px solid var(--border-color);
@@ -38,7 +38,7 @@
 
 /* Table */
 .table-responsive {
-  background: var(--card-bg); border-radius: 4px; /* 4px Radius */
+  background: var(--card-bg); border-radius: 4px;
   overflow-x: auto; border: 1px solid var(--border-color);
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
@@ -50,7 +50,14 @@
 }
 .data-table td { padding: 14px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; vertical-align: middle; }
 .data-table tbody tr:hover { background: var(--bg-secondary); }
-.text-right { text-align: right; }
+
+/* HAPA: Class maalum ya kufanya Action zikae kulia kabisa */
+.actions-col { 
+  text-align: right !important; 
+  white-space: nowrap; 
+  width: 180px; /* Inazuia kusinyaa au kusogea */
+}
+
 .text-muted { color: var(--text-muted); }
 
 /* Badges */
@@ -62,7 +69,7 @@
 .btn-icon {
   border: 1px solid var(--primary-color); background: transparent;
   color: var(--primary-color); padding: 6px 10px; border-radius: 4px;
-  cursor: pointer; font-size: 0.8rem; margin-right: 5px; transition: all 0.2s;
+  cursor: pointer; font-size: 0.8rem; margin-left: 4px; transition: all 0.2s;
 }
 .btn-icon:hover:not(:disabled) { background: var(--primary-color); color: white; }
 .btn-icon.delete { border-color: var(--danger-color); color: var(--danger-color); }
@@ -93,12 +100,12 @@
 
 .modal-content {
   background: var(--card-bg); width: 100%; max-width: 500px;
-  border-radius: 4px; /* 4px Radius */
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
   display: flex; flex-direction: column; max-height: 90vh;
   animation: slideUp 0.3s ease;
 }
 .large-modal { max-width: 700px; }
+.confirm-modal { max-width: 400px; text-align: center; }
 @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 .modal-header {
@@ -106,14 +113,19 @@
   padding: 15px 20px; border-bottom: 1px solid var(--border-color);
 }
 .modal-header h3 { margin: 0; font-size: 1.1rem; color: var(--primary-color); display: flex; align-items: center; gap: 8px; }
+.warning-header { background: #fee2e2; border-radius: 4px 4px 0 0; color: #991b1b; justify-content: center; border-bottom: none; }
+.warning-header h3 { color: #991b1b; justify-content: center; font-size: 1.2rem; }
 .close-btn { background: none; border: none; font-size: 1.2rem; color: var(--text-muted); cursor: pointer; }
 .close-btn:hover { color: var(--danger-color); }
 
 .modal-body { padding: 20px; overflow-y: auto; }
+.confirm-body { padding: 30px 20px; font-size: 1rem; color: var(--text-color); }
+
 .modal-footer {
   display: flex; justify-content: flex-end; gap: 10px;
   padding: 15px 20px; border-top: 1px solid var(--border-color);
 }
+.confirm-modal .modal-footer { justify-content: center; }
 
 /* Form Layout inside Modal */
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
@@ -121,8 +133,7 @@
 .form-group label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.88rem; }
 .form-control {
   width: 100%; padding: 10px 12px; border: 1px solid var(--border-color);
-  border-radius: 4px; /* 4px Radius */
-  background: var(--bg-color); color: var(--text-color); font-size: 0.9rem;
+  border-radius: 4px; background: var(--bg-color); color: var(--text-color); font-size: 0.9rem;
   box-sizing: border-box;
 }
 .form-control:focus { outline: none; border-color: var(--primary-color); }
@@ -136,11 +147,18 @@
 }
 .dropdown-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid var(--border-color); }
 .dropdown-item:hover { background: var(--bg-secondary); }
-.add-new {
-  display: block; padding: 10px 15px; color: var(--primary-color);
-  font-weight: 600; font-size: 0.85rem; cursor: pointer;
-  background: var(--bg-secondary); border-radius: 4px; margin-top: 5px;
+
+/* Device Type List */
+.device-type-list {
+  list-style: none; padding: 0; margin: 0;
+  border: 1px solid var(--border-color); border-radius: 4px;
 }
+.device-type-list li {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 15px; border-bottom: 1px solid var(--border-color);
+}
+.device-type-list li:last-child { border-bottom: none; }
+.device-type-list li:hover { background: var(--bg-secondary); }
 
 /* Details */
 .detail-row { margin-bottom: 10px; font-size: 0.95rem; display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; }

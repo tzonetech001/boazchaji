@@ -20,15 +20,15 @@ export class NotificationService {
     );
   }
 
-  sendNotification(data: any): Observable<any> {
-    return this.http.post(this.apiUrl, data);
+  sendNotification(formData: FormData): Observable<any> {
+    return this.http.post(this.apiUrl, formData);
   }
 
   markAsRead(id: number): Observable<any> {
     return this.http.put(this.apiUrl, { id });
   }
 
-  deleteAll(): Observable<any> {
-    return this.http.delete(this.apiUrl);
+  deleteNotifications(ids?: number[]): Observable<any> {
+    return this.http.delete(this.apiUrl, { body: { ids } });
   }
 }

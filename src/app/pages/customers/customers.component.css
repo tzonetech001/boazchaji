@@ -280,3 +280,18 @@
   .stats-row { grid-template-columns: 1fr 1fr; }
   .actions-col { width: auto; }
 }
+
+.badge-agent {
+  display: inline-block;
+  background: #e0f2fe;
+  color: #0284c7;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid #bae6fd;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}

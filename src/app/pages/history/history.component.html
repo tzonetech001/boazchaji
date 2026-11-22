@@ -1,66 +1,89 @@
 <div class="list-container">
   <div class="list-header">
     <div>
-      <h2><i class="fas fa-history"></i> Historia ya Malipo</h2>
-      <p>Hizi ni kazi zote ambazo zimekamilika, kulipiwa, na kuchukuliwa.</p>
+      <h2><i class="fas fa-history"></i> {{ t('title') }}</h2>
+      <p>{{ t('subtitle') }}</p>
     </div>
+  </div>
+
+  <!-- Toolbar: Search & Bulk Actions -->
+  <div class="toolbar">
+    <div class="search-bar">
+      <i class="fas fa-search"></i>
+      <input type="text" [(ngModel)]="searchQuery" (input)="applyFilter()" [placeholder]="t('searchPlaceholder')">
+    </div>
+
+    <!-- Bulk Delete (Admin Only) -->
+    <button *ngIf="isAdmin && selectedIds.size > 0" class="btn-danger" (click)="bulkDelete()">
+      <i class="fas fa-trash"></i> {{ t('deleteSelected') }} ({{ selectedIds.size }})
+    </button>
   </div>
 
   <!-- Loading State -->
   <div class="loading" *ngIf="isLoading">
-    <i class="fas fa-spinner fa-spin"></i> Inapakia historia...
+    <i class="fas fa-spinner fa-spin"></i>
   </div>
 
   <!-- Empty State -->
-  <div class="empty-state" *ngIf="!isLoading && services.length === 0">
+  <div class="empty-state" *ngIf="!isLoading && filteredServices.length === 0">
     <i class="fas fa-folder-open"></i>
-    <h3>Historia ni tupu!</h3>
-    <p>Hakuna huduma iliyolipiwa na kuchukuliwa bado.</p>
+    <h3>{{ t('noData') }}</h3>
+    <p>{{ t('noDataDesc') }}</p>
   </div>
 
   <!-- Table -->
-  <div class="table-responsive" *ngIf="!isLoading && services.length > 0">
+  <div class="table-responsive" *ngIf="!isLoading && filteredServices.length > 0">
     <table class="data-table">
       <thead>
         <tr>
-          <th>#</th>
-          <th>Mteja</th>
-          <th>Kifaa</th>
-          <th>Idadi</th>
-          <th>Jumla (TZS)</th>
-          <th>Picha</th>
-          <th>Tarehe ya Malipo</th>
-          <th>Hali</th>
-          <th class="actions-col">Action</th>
+          <!-- Checkbox Header (Admin Only) -->
+          <th *ngIf="isAdmin" style="width: 40px; text-align: center;">
+            <input type="checkbox" [checked]="isAllSelected" (change)="toggleSelectAll($event)" 
+                   style="width:16px; height:16px; cursor:pointer;">
+          </th>
+          <th>{{ t('customer') }}</th>
+          <th>{{ t('device') }}</th>
+          <th>{{ t('qty') }}</th>
+          <th>{{ t('total') }}</th>
+          <th>{{ t('image') }}</th>
+          <th>{{ t('date') }}</th>
+          <th>{{ t('status') }}</th>
+          <th *ngIf="isAdmin" class="actions-col">{{ t('actions') }}</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let service of services; let i = index">
-          <td>{{ i + 1 }}</td>
-          <td>
-            <strong>{{ service.customer_name }}</strong><br>
-            <small>{{ service.customer_phone || 'Hakuna namba' }}</small>
+        <tr *ngFor="let s of paginatedServices">
+          <!-- Checkbox (Admin Only) -->
+          <td *ngIf="isAdmin" style="text-align: center;">
+            <input type="checkbox" [checked]="selectedIds.has(s.id!)" (change)="toggleSelect(s.id!)"
+                   style="width:16px; height:16px; cursor:pointer;">
           </td>
           <td>
-            {{ service.device_name }}<br>
-            <small class="badge">{{ service.device_type_name }}</small>
+            <strong>{{ s.customer_name }}</strong><br>
+            <small class="text-muted">{{ s.customer_phone || t('noPhone') }}</small>
           </td>
-          <td>{{ service.quantity }}</td>
-          <td class="amount">{{ service.amount * service.quantity | number }}</td>
           <td>
-            <button class="btn-icon" *ngIf="service.image_path" (click)="$any(this).selectedImage = service.image_path">
-              <i class="fas fa-image"></i> Ona
+            {{ s.device_name }}<br>
+            <small class="badge">{{ s.device_type_name }}</small>
+          </td>
+          <td>{{ s.quantity }}</td>
+          <td class="amount">{{ s.amount * s.quantity | number }}</td>
+          <td>
+            <button class="btn-icon view" *ngIf="$any(s).images?.length" (click)="viewImage($any(s).images[0])">
+              <i class="fas fa-image"></i> {{ t('viewImage') }}
             </button>
-            <span *ngIf="!service.image_path" class="text-muted">—</span>
+            <span *ngIf="!$any(s).images?.length" class="text-muted">—</span>
           </td>
-          <td>{{ service.created_at | date:'mediumDate' }}</td>
+          <td>{{ s.created_at | date:'mediumDate' }}</td>
           <td>
             <span class="status-paid">
-              <i class="fas fa-check-circle"></i> Amelipa & Amechukua
+              <i class="fas fa-check-circle"></i> {{ t('paidTaken') }}
             </span>
           </td>
-          <td class="actions-col">
-            <button class="btn-icon delete" (click)="deleteService(service.id!)" title="Futa Huduma">
+          
+          <!-- Delete Action (Admin Only) -->
+          <td *ngIf="isAdmin" class="actions-col">
+            <button class="btn-icon delete" (click)="deleteService(s.id!)" [title]="t('delete')">
               <i class="fas fa-trash"></i>
             </button>
           </td>
@@ -68,12 +91,23 @@
       </tbody>
     </table>
   </div>
+
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="totalPages > 1">
+    <button [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+      <i class="fas fa-chevron-left"></i> {{ t('prev') }}
+    </button>
+    <span>{{ t('page') }} {{ currentPage }} / {{ totalPages }}</span>
+    <button [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+      {{ t('next') }} <i class="fas fa-chevron-right"></i>
+    </button>
+  </div>
 </div>
 
 <!-- Image Modal -->
-<div class="modal-overlay" *ngIf="$any(this).selectedImage" (click)="$any(this).selectedImage = null">
+<div class="modal-overlay" *ngIf="selectedImage" (click)="closeImage()">
   <div class="modal-content" (click)="$event.stopPropagation()">
-    <button class="close-btn" (click)="$any(this).selectedImage = null"><i class="fas fa-times"></i></button>
-    <img [src]="$any(this).selectedImage" alt="Picha ya Kifaa">
+    <button class="close-btn" (click)="closeImage()"><i class="fas fa-times"></i></button>
+    <img [src]="selectedImage" alt="Device Image">
   </div>
 </div>

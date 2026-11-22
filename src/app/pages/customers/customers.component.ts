@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { LanguageService } from '../../core/services/language.service';
+import { AuthService } from '../../core/services/auth.service';
+import { ApiService } from '../../core/services/api.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -15,14 +17,18 @@ import { environment } from '../../../environments/environment';
 export class CustomersComponent implements OnInit {
   private http = inject(HttpClient);
   private fb   = inject(FormBuilder);
+  private auth = inject(AuthService);
+  private api  = inject(ApiService);
   langService  = inject(LanguageService);
 
   private API = `${environment.baseUrl}/api/customers.php`;
 
   customers: any[] = [];
   filtered: any[] = [];
+  agents: any[] = [];
   searchTerm = '';
   loading = false;
+  isAdmin = false;
 
   // Modal Controls
   showFormModal = false;
@@ -45,6 +51,7 @@ export class CustomersComponent implements OnInit {
       newThisWeek: 'Wapya Wiki Hii',
       name: 'Jina',
       phone: 'Namba ya Simu',
+      agent: 'Agent',
       actions: 'Vitendo',
       save: 'Hifadhi',
       update: 'Sasisha',
@@ -63,7 +70,8 @@ export class CustomersComponent implements OnInit {
       errUpdate: 'Imeshindwa kusasisha mteja.',
       errLoad: 'Imeshindwa kupakia wateja.',
       nameRequired: 'Jina linahitajika',
-      phoneInvalid: 'Namba si sahihi (mfano: 0712345678)'
+      phoneInvalid: 'Namba si sahihi (mfano: 0712345678)',
+      selectAgent: 'Chagua Agent (Hiari)'
     },
     en: {
       title: 'Customers',
@@ -75,6 +83,7 @@ export class CustomersComponent implements OnInit {
       newThisWeek: 'New This Week',
       name: 'Name',
       phone: 'Phone',
+      agent: 'Agent',
       actions: 'Actions',
       save: 'Save',
       update: 'Update',
@@ -93,18 +102,30 @@ export class CustomersComponent implements OnInit {
       errUpdate: 'Failed to update customer.',
       errLoad: 'Failed to load customers.',
       nameRequired: 'Name is required',
-      phoneInvalid: 'Invalid phone (e.g., 0712345678)'
+      phoneInvalid: 'Invalid phone (e.g., 0712345678)',
+      selectAgent: 'Select Agent (Optional)'
     }
   };
 
   constructor() {
     this.customerForm = this.fb.group({
       name:  ['', Validators.required],
-      phone: ['', Validators.pattern('^(07|06)[0-9]{8}$')]
+      phone: ['', Validators.pattern('^(07|06)[0-9]{8}$')],
+      created_by_agent_id: [null] // Mpya: Kwa ajili ya kuchagua agent
     });
   }
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    const user = this.auth.getCurrentUser();
+    this.isAdmin = user?.role === 'admin';
+    
+    // Kama ni admin, chukua orodha ya agents wote
+    if (this.isAdmin) {
+      this.api.getAgents().subscribe(res => this.agents = res);
+    }
+
+    this.load();
+  }
 
   t(key: string): string {
     return this.translations[this.langService.lang()]?.[key] ?? key;
@@ -117,7 +138,12 @@ export class CustomersComponent implements OnInit {
 
   load() {
     this.loading = true;
-    this.http.get<any[]>(`${this.API}?search=`)
+    const user = this.auth.getCurrentUser();
+    const role = user?.role || 'agent';
+    const agentId = role === 'agent' ? user?.id : '';
+
+    // Tuma role na agent_id ili backend ichuje data
+    this.http.get<any[]>(`${this.API}?search=&role=${role}&agent_id=${agentId}`)
       .subscribe({
         next: (res) => { 
           this.customers = res; 
@@ -149,6 +175,12 @@ export class CustomersComponent implements OnInit {
     this.isEditing = false;
     this.currentEditId = null;
     this.customerForm.reset();
+    
+    // Kama ni agent, jitengenezee ID yake automatically kwenye fomu
+    if (!this.isAdmin) {
+      const user = this.auth.getCurrentUser();
+      this.customerForm.patchValue({ created_by_agent_id: user?.id });
+    }
     this.showFormModal = true;
   }
 
@@ -157,7 +189,8 @@ export class CustomersComponent implements OnInit {
     this.currentEditId = customer.id;
     this.customerForm.patchValue({ 
       name: customer.name, 
-      phone: customer.phone || '' 
+      phone: customer.phone || '',
+      created_by_agent_id: customer.created_by_agent_id || null
     });
     this.showFormModal = true;
   }
@@ -172,6 +205,13 @@ export class CustomersComponent implements OnInit {
 
   submit() {
     if (this.customerForm.invalid) return;
+    
+    // Kama ni agent, hakikisha agent_id yake imewekwa
+    if (!this.isAdmin && !this.customerForm.value.created_by_agent_id) {
+      const user = this.auth.getCurrentUser();
+      this.customerForm.patchValue({ created_by_agent_id: user?.id });
+    }
+
     const body = this.customerForm.value;
 
     if (this.isEditing && this.currentEditId) {
