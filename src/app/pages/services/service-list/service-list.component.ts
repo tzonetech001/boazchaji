@@ -59,54 +59,48 @@ export class ServiceListComponent implements OnInit {
 
   translations: Record<string, Record<string, string>> = {
     sw: {
-      title: 'Huduma Zinazosubiri',
-      subtitle: 'Hizi ni kazi ambazo bado hazijalipiwa au hazijachukuliwa.',
-      addBtn: 'Rekodi Mpya',
-      searchPlaceholder: 'Tafuta kwa jina, simu au kifaa...',
+      title: 'Huduma Zinazosubiri', subtitle: 'Hizi ni kazi ambazo bado hazijalipiwa au hazijachukuliwa.',
+      addBtn: 'Rekodi Mpya', searchPlaceholder: 'Tafuta kwa jina, simu au kifaa...',
       customer: 'Mteja', device: 'Kifaa', qty: 'Idadi', total: 'Jumla', status: 'Hali',
       agent: 'Agent', actions: 'Vitendo', paid: 'Amelipa', pending: 'Hajalipa',
-      view: 'Onyesha', updateStatus: 'Badilisha Hali', takeDevice: 'Chukua Kifaa', delete: 'Futa',
-      noData: 'Hakuna huduma inayosubiri.',
-      addService: 'Rekodi Huduma Mpya', selectAgent: 'Chagua Agent',
-      customerName: 'Jina la Mteja', customerPhone: 'Namba ya Simu',
+      view: 'Onyesha', updateStatus: 'Badilisha Hali', takeDevice: 'Chukua', delete: 'Futa',
+      noData: 'Hakuna huduma inayosubiri.', addService: 'Rekodi Huduma Mpya', 
+      selectAgent: 'Chagua Agent', customerName: 'Jina la Mteja', customerPhone: 'Namba ya Simu',
       deviceName: 'Jina la Kifaa', deviceType: 'Aina ya Kifaa', amount: 'Kiasi (TZS)',
-      paidCheck: 'Amelipia Kikamilifu', image: 'Picha (Unaweza kuchagua zaidi ya moja)',
+      paidCheck: 'Amelipia Kikamilifu', image: 'Picha (Unaweza kuchagua nyingi)',
       save: 'Hifadhi', cancel: 'Ghairi', close: 'Funga',
       confirmStatus: 'Badilisha Hali ya Malipo', confirmStatusMsg: 'Je, mteja amelipia huduma hii?',
       yesPaid: 'Ndio, Amelipa', noUnpaid: 'Hapana, Hajalipa',
-      returnDevice: 'Rudisha Kifaa', returnMsg: 'Weka idadi ya vifaa anavyochukua sasa hivi:',
-      confirmReturn: 'Rudisha', addDeviceType: 'Ongeza Aina ya Kifaa', saveDeviceType: 'Hifadhi Aina',
-      addedOk: 'Huduma imehifadhiwa kikamilifu!', statusUpdated: 'Hali ya malipo imebadilishwa!',
-      returnedOk: 'Vifaa vimerudishwa!', errGeneral: 'Hitilafu imetokea. Jaribu tena.',
-      deletedOk: 'Huduma imefutwa!', deleteBlocked: 'Hauwezi kufuta huduma iliyochukuliwa!'
+      returnDevice: 'Chukua Kifaa', returnMsg: 'Weka idadi ya vifaa anavyochukua sasa:',
+      confirmReturn: 'Chukua', addDeviceType: 'Ongeza Aina ya Kifaa', saveDeviceType: 'Hifadhi',
+      addedOk: 'Huduma imehifadhiwa!', statusUpdated: 'Hali imebadilishwa!',
+      returnedOk: 'Kifaa kimechukuliwa!', errGeneral: 'Hitilafu imetokea.', 
+      deletedOk: 'Imefutwa!', deleteBlocked: 'Hauwezi kufuta, kifaa kimeshaanza kuchukuliwa!'
     },
     en: {
-      title: 'Pending Services',
-      subtitle: 'These are jobs that are not yet paid or taken.',
-      addBtn: 'New Record',
-      searchPlaceholder: 'Search by name, phone or device...',
+      title: 'Pending Services', subtitle: 'These are jobs not yet paid or taken.',
+      addBtn: 'New Record', searchPlaceholder: 'Search by name, phone or device...',
       customer: 'Customer', device: 'Device', qty: 'Qty', total: 'Total', status: 'Status',
       agent: 'Agent', actions: 'Actions', paid: 'Paid', pending: 'Unpaid',
-      view: 'View', updateStatus: 'Update Status', takeDevice: 'Take Device', delete: 'Delete',
-      noData: 'No pending services.',
-      addService: 'Record New Service', selectAgent: 'Select Agent',
-      customerName: 'Customer Name', customerPhone: 'Phone Number',
+      view: 'View', updateStatus: 'Update Status', takeDevice: 'Take', delete: 'Delete',
+      noData: 'No pending services.', addService: 'Record New Service', 
+      selectAgent: 'Select Agent', customerName: 'Customer Name', customerPhone: 'Phone Number',
       deviceName: 'Device Name', deviceType: 'Device Type', amount: 'Amount (TZS)',
-      paidCheck: 'Fully Paid', image: 'Images (You can select multiple)',
+      paidCheck: 'Fully Paid', image: 'Images (Multiple allowed)',
       save: 'Save', cancel: 'Cancel', close: 'Close',
-      confirmStatus: 'Update Payment Status', confirmStatusMsg: 'Did the customer pay for this service?',
+      confirmStatus: 'Update Payment Status', confirmStatusMsg: 'Did the customer pay?',
       yesPaid: 'Yes, Paid', noUnpaid: 'No, Unpaid',
-      returnDevice: 'Return Device', returnMsg: 'Enter quantity being taken now:',
-      confirmReturn: 'Return', addDeviceType: 'Add Device Type', saveDeviceType: 'Save Type',
-      addedOk: 'Service recorded successfully!', statusUpdated: 'Payment status updated!',
-      returnedOk: 'Devices returned!', errGeneral: 'An error occurred. Try again.',
-      deletedOk: 'Service deleted!', deleteBlocked: 'Cannot delete a taken service!'
+      returnDevice: 'Take Device', returnMsg: 'Enter quantity being taken now:',
+      confirmReturn: 'Take', addDeviceType: 'Add Device Type', saveDeviceType: 'Save',
+      addedOk: 'Service saved!', statusUpdated: 'Status updated!',
+      returnedOk: 'Device taken!', errGeneral: 'An error occurred.', 
+      deletedOk: 'Deleted!', deleteBlocked: 'Cannot delete, device partly/fully taken!'
     }
   };
 
   constructor() {
     this.serviceForm = this.fb.group({
-      customer_id: [null], // Sio lazima, kwa sababu tutamtengeneza mteja akiwa mpya
+      customer_id: [null], 
       customer_name: ['', Validators.required],
       customer_phone: ['', [Validators.required, Validators.pattern('^(06|07)[0-9]{8}$')]],
       device_type_id: ['', Validators.required],
@@ -179,18 +173,7 @@ export class ServiceListComponent implements OnInit {
   }
 
   selectCustomer(c: Customer) { this.serviceForm.patchValue({ customer_id: c.id, customer_name: c.name, customer_phone: c.phone }); this.showDropdown = false; }
-  
-  createNewCustomer() {
-    const name = this.serviceForm.get('customer_name')?.value;
-    const phone = this.serviceForm.get('customer_phone')?.value;
-    if (!name || !phone) return alert("Weka jina na namba sahihi kwanza");
-    this.api.addCustomer({ name, phone }).subscribe(res => {
-      this.serviceForm.patchValue({ customer_id: res.id });
-      this.showDropdown = false;
-    });
-  }
 
-  // DEVICE TYPE MODAL
   openDeviceTypeModal() {
     this.newDeviceTypeName = '';
     this.showDeviceTypeModal = true;
@@ -205,7 +188,6 @@ export class ServiceListComponent implements OnInit {
     });
   }
 
-  // MULTIPLE IMAGES UPLOAD
   onFilesSelected(event: any) {
     const files = event.target.files;
     if (files) {
@@ -226,10 +208,10 @@ export class ServiceListComponent implements OnInit {
   // SUBMIT ADD SERVICE
   onSubmitAdd() {
     if (this.serviceForm.invalid) return;
-    
-    // Auto-save mteja kama hayupo
+    this.isSubmitting = true;
+
+    // Kama ni mteja mpya (hana ID), mhifadhi kwanza
     if (!this.serviceForm.value.customer_id && this.serviceForm.value.customer_name && this.serviceForm.value.customer_phone) {
-      this.isSubmitting = true;
       this.api.addCustomer({ name: this.serviceForm.value.customer_name, phone: this.serviceForm.value.customer_phone }).subscribe({
         next: (res) => {
           this.serviceForm.patchValue({ customer_id: res.id });
@@ -237,19 +219,20 @@ export class ServiceListComponent implements OnInit {
         },
         error: () => { this.showMessage('Imeshindwa kuongeza mteja mpya', 'error'); this.isSubmitting = false; }
       });
-    } else {
+    } else if (this.serviceForm.value.customer_id) {
       this.proceedToSaveService();
+    } else {
+      this.showMessage('Chagua mteja au jaza jina na namba', 'error');
+      this.isSubmitting = false;
     }
   }
 
   proceedToSaveService() {
-    this.isSubmitting = true;
     const formData = new FormData();
     Object.keys(this.serviceForm.value).forEach(key => {
       if (this.serviceForm.value[key] !== null) formData.append(key, this.serviceForm.value[key]);
     });
     
-    // Append multiple images
     this.selectedFiles.forEach(file => formData.append('images[]', file));
 
     this.api.addService(formData).subscribe({
@@ -276,8 +259,9 @@ export class ServiceListComponent implements OnInit {
 
   confirmReturn() {
     if (!this.selectedService) return;
-    const takenQuantity = (this.selectedService as Service & { taken_quantity?: number }).taken_quantity || 0;
-    const maxQty = this.selectedService.quantity - takenQuantity;
+    const takenQty = (this.selectedService as any).taken_quantity || 0;
+    const maxQty = this.selectedService.quantity - takenQty;
+    
     if (this.returnQuantity < 1 || this.returnQuantity > maxQty) {
       return alert(`Weka idadi kati ya 1 na ${maxQty}`);
     }

@@ -53,12 +53,14 @@
           <td class="text-right">
             <button class="btn-icon" (click)="openView(s)" [title]="t('view')"><i class="fas fa-eye"></i></button>
             <button class="btn-icon" (click)="openStatusModal(s)" [title]="t('updateStatus')"><i class="fas fa-money-bill"></i></button>
+            
             <button class="btn-success" (click)="openReturnModal(s)" style="margin-right:5px;">
               <i class="fas fa-hand-holding"></i> {{ t('takeDevice') }}
             </button>
-            <!-- Kitufe cha Kufuta: Kinazimwa kama kifaa kimechukuliwa -->
+            
+            <!-- Kitufe cha Kufuta: Kinazimwa kama kifaa kimeshaanza kuchukuliwa -->
             <button class="btn-icon delete" (click)="deleteService(s.id!)" 
-                    [disabled]="s.status === 'paid' && ($any(s).taken_quantity || 0) > 0"
+                    [disabled]="($any(s).taken_quantity || 0) > 0"
                     [title]="t('delete')">
               <i class="fas fa-trash"></i>
             </button>
@@ -105,13 +107,14 @@
               <strong>{{ c.name }}</strong> - {{ c.phone }}
             </div>
           </div>
-          <small class="add-new" *ngIf="!showDropdown && serviceForm.value.customer_name && !serviceForm.value.customer_id" (click)="createNewCustomer()">
-            <i class="fas fa-plus-circle"></i> Hifadhi "{{serviceForm.value.customer_name}}" kama mteja mpya
+          <small class="add-new" *ngIf="!showDropdown && serviceForm.value.customer_name && !serviceForm.value.customer_id">
+            <i class="fas fa-info-circle"></i> Mteja mpya atahifadhiwa moja kwa moja
           </small>
         </div>
 
         <div class="form-group">
           <label>{{ t('customerPhone') }} <span style="color:red">*</span></label>
+          <!-- Namba imezuiwa kuchukua zaidi ya 10 -->
           <input type="tel" formControlName="customer_phone" maxlength="10" class="form-control" placeholder="07XXXXXXXX">
         </div>
       </div>
@@ -153,7 +156,6 @@
         </label>
       </div>
 
-      <!-- Multiple Images -->
       <div class="form-group">
         <label>{{ t('image') }}</label>
         <input type="file" (change)="onFilesSelected($event)" accept="image/*" multiple class="form-control">
@@ -172,6 +174,7 @@
 
       <div class="modal-footer" style="padding:0; border:none; margin-top:10px;">
         <button type="button" class="btn-secondary" (click)="closeModals()">{{ t('cancel') }}</button>
+        <!-- Kitufe kiko enabled kila wakati ili kukidhi mahitaji ya mteja mpya -->
         <button type="submit" class="btn-primary" [disabled]="isSubmitting">
           <i class="fas fa-save" *ngIf="!isSubmitting"></i> 
           <i class="fas fa-spinner fa-spin" *ngIf="isSubmitting"></i> {{ t('save') }}
@@ -261,8 +264,12 @@
     </div>
     <div class="modal-body text-center" style="padding:20px;">
       <p>{{ t('returnMsg') }}</p>
-      <p><strong>{{ selectedService?.customer_name }}</strong> (Total: {{ selectedService?.quantity }})</p>
-      <input type="number" [(ngModel)]="returnQuantity" min="1" [max]="selectedService?.quantity ?? null" class="form-control" style="text-align:center; font-size:1.2rem; margin:15px 0;">
+      <p><strong>{{ selectedService?.customer_name }}</strong> (Total: {{ selectedService?.quantity }}, Zilizobaki: {{ (selectedService?.quantity || 0) - ($any(selectedService)?.taken_quantity || 0) }})</p>
+      
+      <!-- Ongeza kikomo cha idadi -->
+      <input type="number" [(ngModel)]="returnQuantity" min="1" 
+             [max]="(selectedService?.quantity || 1) - ($any(selectedService)?.taken_quantity || 0)" 
+             class="form-control" style="text-align:center; font-size:1.2rem; margin:15px 0;">
     </div>
     <div class="modal-footer" style="justify-content:center;">
       <button type="button" class="btn-primary" (click)="confirmReturn()"><i class="fas fa-check"></i> {{ t('confirmReturn') }}</button>
